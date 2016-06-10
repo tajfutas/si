@@ -2,7 +2,7 @@ import datetime
 import math
 import struct
 
-import si.common
+import si
 
 PF = si.common.ProductFamily
 PT = si.common.ProductType
@@ -36,6 +36,11 @@ class SIStation(metaclass=RegisterSIStationTypes):
   has_realtime_clock = True
   realtime_clock_enabled = True
 
+  additional_extproto_instructions = frozenset((  # experimental
+      si.extproto.GetSystemData,
+      si.extproto.SetMsMode,
+      ))
+
   @classmethod
   def product_config(cls):
     return (cls.product_type_c1_byte
@@ -64,6 +69,11 @@ class SIStation(metaclass=RegisterSIStationTypes):
   def __init__(self):
     self._sysdata = memoryview(bytearray(self.SYSDATA_SIZE))
     self._sysdata[12] = self.product_family.value
+    self.transfer_mode = si.common.MSMode.Master  # experimental
+    self.instr = {i.CMD: i for c in self.__class__.__mro__
+        if hasattr(c, 'additional_extproto_instructions')
+        for i in c.additional_extproto_instructions
+        }
 
   @property
   def sysdata(self):
@@ -370,6 +380,15 @@ class SIControlStationMixin:
     vh_ = vh << 6
     self.sysdata[115] = (self.sysdata[115] & 0b111111) + vh_
     self.sysdata[114] = vl
+
+  @property
+  def vmem_code_number_cn(self):
+    return struct.pack('B', self.vmem_code_number)
+
+  @property
+  def vmem_code_number_cn10(self):
+    return struct.pack('>H', self.vmem_code_number)
+
 
   @property
   def vmem_airplus_special_mode(self):
