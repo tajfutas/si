@@ -38,6 +38,7 @@ class SIStation(metaclass=RegisterSIStationTypes):
 
   additional_extproto_instructions = frozenset((  # experimental
       si.extproto.GetSystemData,
+      si.extproto.GetTime,
       si.extproto.SetMsMode,
       ))
 
@@ -69,11 +70,12 @@ class SIStation(metaclass=RegisterSIStationTypes):
   def __init__(self):
     self._sysdata = memoryview(bytearray(self.SYSDATA_SIZE))
     self._sysdata[12] = self.product_family.value
+    self.time_diff = datetime.timedelta(0)  # experimental
     self.transfer_mode = si.common.MSMode.Master  # experimental
     self.instr = {i.CMD: i for c in self.__class__.__mro__
         if hasattr(c, 'additional_extproto_instructions')
         for i in c.additional_extproto_instructions
-        }
+        }  # experimental
 
   @property
   def sysdata(self):

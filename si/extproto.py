@@ -1,4 +1,5 @@
 import collections
+import datetime
 from enum import Enum
 import struct
 
@@ -99,7 +100,7 @@ def get_crc(bytes_):
   return num
 
 
-def instr(cmd, data):
+def instr(cmd, data=b''):
   length_byte = struct.pack('B', len(data))
   base = cmd.value + length_byte + data
   crc = struct.pack('>H', get_crc(base))
@@ -120,7 +121,7 @@ def split_instr(instr):
   result = [bytearray() for s in STRUCTURE]
   i, si, L, len_data = 0, 0, len(instr), 0
   while i < L:
-    byte = instr[i : i + 1]
+    byte = bytes([instr[i]])
     for si_ in range(si, len(STRUCTURE)):
       s = STRUCTURE[si_]
       at, optional = s
@@ -146,6 +147,8 @@ def split_instr(instr):
         len_data = struct.unpack('B', byte)[0]
         result[si_].extend(byte)
         si += 1
+        if len_data == 0:
+          si += 1
         i += 1
         break
       elif at == 'data':
@@ -168,7 +171,11 @@ def split_instr(instr):
 
 
 class Instruction:
-  pass
+
+  @classmethod
+  def issue(cls):
+    return instr(self.CMD)
+
 
 class GetSystemData(Instruction):
   CMD = Cmd.GET_SYS_VAL
@@ -177,7 +184,7 @@ class GetSystemData(Instruction):
   def issue(cls, adr=0, anz=128):
     bb = bytes((adr, anz))
     assert bb[0] + bb[1] <= 128
-    return instr(cls.CMD.value, bb)
+    return instr(cls.CMD, bb)
 
   @classmethod
   def respond(cls, issued, station):
@@ -185,14 +192,14 @@ class GetSystemData(Instruction):
       parts = issued
     else:
       parts = split_instr(issued)
-    assert Cmd(parts.cmd_byte) == cls.CMD.value
+    assert parts.cmd_byte == cls.CMD.value
     assert len(parts.data) == 2
     adr, anz = parts.data
     assert adr + anz <= 128
     sysdata = station.sysdata[adr : adr + anz].tobytes()
     cn10 = station.vmem_code_number_cn10
     adr_byte = bytes([adr])
-    return instr(cls.CMD.value, cn10 + adr_byte + sysdata)
+    return instr(cls.CMD, cn10 + adr_byte + sysdata)
 
   @classmethod
   def handle(cls, response, station):
@@ -200,7 +207,7 @@ class GetSystemData(Instruction):
       parts = response
     else:
       parts = split_instr(response)
-    assert Cmd(parts.cmd_byte) == cls.CMD.value
+    assert parts.cmd_byte == cls.CMD.value
     adr = parts.data[2]
     anz = len(parts.data) - 3
     station.sysdata[adr : adr + anz] = parts.data[3:]
@@ -215,7 +222,7 @@ class SetMsMode(Instruction):
       m_or_s = m_or_s.value
     m_or_s = bytes([m_or_s])
     assert m_or_s[0] in common.MSMode.__members__.values()
-    return instr(self.CMD.value, m_or_s)
+    return instr(self.CMD, m_or_s)
 
   @classmethod
   def respond(cls, issued, station):
@@ -223,12 +230,12 @@ class SetMsMode(Instruction):
       parts = issued
     else:
       parts = split_instr(issued)
-    assert Cmd(parts.cmd_byte) == cls.CMD.value
+    assert parts.cmd_byte == cls.CMD.value
     assert len(parts.data) == 1
     m_or_s = common.MSMode(parts.data[0])
     station.transfer_mode = m_or_s
     cn10 = station.vmem_code_number_cn10
-    return instr(cls.CMD.value, cn10 + parts.data)
+    return instr(cls.CMD, cn10 + parts.data)
 
   @classmethod
   def handle(cls, response, station):
@@ -236,8 +243,36 @@ class SetMsMode(Instruction):
       parts = response
     else:
       parts = split_instr(response)
-    assert Cmd(parts.cmd_byte) == cls.CMD.value
+    assert parts.cmd_byte == cls.CMD.value
     m_or_s = common.MSMode(parts.data[2])
     station.transfer_mode = m_or_s
     anz = len(parts.data) - 3
     station.sysdata[adr : adr + anz] = parts.data[3:]
+
+
+class GetTime(Instruction):
+  CMD = Cmd.GET_TIME
+
+
+  @classmethod
+  def respond(cls, issued, station):
+    if isinstance(issued, instruction_parts):
+      parts = issued
+    else:
+      parts = split_instr(issued)
+    assert parts.cmd_byte == cls.CMD.value
+    assert len(parts.data) == 0
+    cn10 = station.vmem_code_number_cn10
+    T = datetime.datetime.now() + station.time_diff
+    data = common.to_sitime74(T)
+    return instr(cls.CMD, cn10 + data)
+
+  @classmethod
+  def handle(cls, response, station):
+    if isinstance(response, instruction_parts):
+      parts = response
+    else:
+      parts = split_instr(response)
+    assert parts.cmd_byte == cls.CMD.value
+    T = common.from_sitime74(parts.data[2:])
+    station.time_diff = T - datatime.datetime.now()
