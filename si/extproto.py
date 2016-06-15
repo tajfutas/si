@@ -173,51 +173,74 @@ def split_instr(instr):
 class Instruction:
 
   @classmethod
-  def issue(cls):
+  def precv(cls):
+    pass
+
+  @classmethod
+  def psend(cls):
     return instr(self.CMD)
 
+  @classmethod
+  def srecv(cls):
+    pass
+
+  @classmethod
+  def ssend(cls):
+    pass
 
 class GetSystemData(Instruction):
   CMD = Cmd.GET_SYS_VAL
 
   @classmethod
-  def issue(cls, adr=0, anz=128):
+  def precv(cls, sinstr, station):
+    if isinstance(sinstr, instruction_parts):
+      parts = sinstr
+    else:
+      parts = split_instr(sinstr)
+    assert parts.cmd_byte == cls.CMD.value
+    adr = parts.data[2]
+    anz = len(parts.data) - 3
+    station.mem[adr : adr + anz] = parts.data[3:]
+
+  @classmethod
+  def psend(cls, adr=0, anz=128):
     bb = bytes((adr, anz))
     assert bb[0] + bb[1] <= 128
     return instr(cls.CMD, bb)
 
   @classmethod
-  def respond(cls, issued, station):
-    if isinstance(issued, instruction_parts):
-      parts = issued
+  def srecv(cls, pinstr, station):
+    if isinstance(pinstr, instruction_parts):
+      parts = pinstr
     else:
-      parts = split_instr(issued)
+      parts = split_instr(pinstr)
     assert parts.cmd_byte == cls.CMD.value
     assert len(parts.data) == 2
     adr, anz = parts.data
     assert adr + anz <= 128
-    sysdata = station.sysdata[adr : adr + anz].tobytes()
-    cn10 = station.vmem_code_number_cn10
+    mem = station.mem[adr : adr + anz].tobytes()
+    cn10 = station.code_number_cn10
     adr_byte = bytes([adr])
-    return instr(cls.CMD, cn10 + adr_byte + sysdata)
-
-  @classmethod
-  def handle(cls, response, station):
-    if isinstance(response, instruction_parts):
-      parts = response
-    else:
-      parts = split_instr(response)
-    assert parts.cmd_byte == cls.CMD.value
-    adr = parts.data[2]
-    anz = len(parts.data) - 3
-    station.sysdata[adr : adr + anz] = parts.data[3:]
+    return instr(cls.CMD, cn10 + adr_byte + mem)
 
 
 class SetMsMode(Instruction):
   CMD = Cmd.SET_MS
 
   @classmethod
-  def issue(cls, m_or_s=common.MSMode.Master):
+  def precv(cls, sinstr, station):
+    if isinstance(sinstr, instruction_parts):
+      parts = sinstr
+    else:
+      parts = split_instr(sinstr)
+    assert parts.cmd_byte == cls.CMD.value
+    m_or_s = common.MSMode(parts.data[2])
+    station.transfer_mode = m_or_s
+    anz = len(parts.data) - 3
+    station.mem[adr : adr + anz] = parts.data[3:]
+
+  @classmethod
+  def psend(cls, m_or_s=common.MSMode.Master):
     if hasattr(m_or_s, 'value'):
       m_or_s = m_or_s.value
     m_or_s = bytes([m_or_s])
@@ -225,54 +248,80 @@ class SetMsMode(Instruction):
     return instr(self.CMD, m_or_s)
 
   @classmethod
-  def respond(cls, issued, station):
-    if isinstance(issued, instruction_parts):
-      parts = issued
+  def srecv(cls, pinstr, station):
+    if isinstance(pinstr, instruction_parts):
+      parts = pinstr
     else:
-      parts = split_instr(issued)
+      parts = split_instr(pinstr)
     assert parts.cmd_byte == cls.CMD.value
     assert len(parts.data) == 1
     m_or_s = common.MSMode(parts.data[0])
     station.transfer_mode = m_or_s
-    cn10 = station.vmem_code_number_cn10
+    cn10 = station.code_number_cn10
     return instr(cls.CMD, cn10 + parts.data)
-
-  @classmethod
-  def handle(cls, response, station):
-    if isinstance(response, instruction_parts):
-      parts = response
-    else:
-      parts = split_instr(response)
-    assert parts.cmd_byte == cls.CMD.value
-    m_or_s = common.MSMode(parts.data[2])
-    station.transfer_mode = m_or_s
-    anz = len(parts.data) - 3
-    station.sysdata[adr : adr + anz] = parts.data[3:]
 
 
 class GetTime(Instruction):
   CMD = Cmd.GET_TIME
 
+  @classmethod
+  def precv(cls, sinstr, station):
+    if isinstance(sinstr, instruction_parts):
+      parts = sinstr
+    else:
+      parts = split_instr(sinstr)
+    assert parts.cmd_byte == cls.CMD.value
+    T = common.from_sitime74(parts.data[2:])
+    station.time_diff = T - datatime.datetime.now()
 
   @classmethod
-  def respond(cls, issued, station):
-    if isinstance(issued, instruction_parts):
-      parts = issued
+  def srecv(cls, pinstr, station):
+    if isinstance(pinstr, instruction_parts):
+      parts = pinstr
     else:
-      parts = split_instr(issued)
+      parts = split_instr(pinstr)
     assert parts.cmd_byte == cls.CMD.value
     assert len(parts.data) == 0
-    cn10 = station.vmem_code_number_cn10
+    cn10 = station.code_number_cn10
     T = datetime.datetime.now() + station.time_diff
     data = common.to_sitime74(T)
     return instr(cls.CMD, cn10 + data)
 
+
+class GetTime(Instruction):
+  CMD = Cmd.GET_TIME
+
   @classmethod
-  def handle(cls, response, station):
-    if isinstance(response, instruction_parts):
-      parts = response
+  def precv(cls, sinstr, station):
+    if isinstance(sinstr, instruction_parts):
+      parts = sinstr
     else:
-      parts = split_instr(response)
+      parts = split_instr(sinstr)
     assert parts.cmd_byte == cls.CMD.value
     T = common.from_sitime74(parts.data[2:])
     station.time_diff = T - datatime.datetime.now()
+
+  @classmethod
+  def srecv(cls, pinstr, station):
+    if isinstance(pinstr, instruction_parts):
+      parts = pinstr
+    else:
+      parts = split_instr(pinstr)
+    assert parts.cmd_byte == cls.CMD.value
+    assert len(parts.data) == 0
+    cn10 = station.code_number_cn10
+    T = datetime.datetime.now() + station.time_diff
+    data = common.to_sitime74(T)
+    return instr(cls.CMD, cn10 + data)
+
+
+class TriggerPunch(Instruction):
+  CMD = Cmd.TRANS_REC
+
+  @classmethod
+  def ssend(cls, station, bmem_adr):
+    assert (station.START_ADR <= bmem_adr < station.MEM_SIZE-8)
+    cn10 = station.code_number_cn10
+    data = station.mem[bmem_adr:bmem_adr+8].tobytes()
+    mem = struct.pack('>I', bmem_adr)[1:]
+    return instr(cls.CMD, cn10 + data + mem)

@@ -1,10 +1,22 @@
-import _thread
+import time
+import threading
 
 import serial
 
 import si
 
+class AutoSendException(Exception): pass
+
+
 class Connection:
+
+  class ConnectionThread(threading.Thread):
+    def __init__(self, cnxn):
+      super().__init__()
+      self.cnxn = cnxn
+
+    def run(self):
+      return self.cnxn.__class__._attach(self.cnxn)
 
   def __init__(self, station, port, baudrate=4800):
     self.station = station
@@ -13,6 +25,7 @@ class Connection:
     self.running = None
     self.serial = None
     self.in_buf = None
+    self._thread = None
 
   def read(self, n=1):
     data = self.serial.read(n)
@@ -23,28 +36,39 @@ class Connection:
     return self.serial.write(data)
 
   def proto_module(self):
-    if self.station.vmem_legacy_protocol_mode:
+    if self.station.legacy_protocol_mode:
       return si.legproto
     else:
       return si.extproto
 
   def attach(self):
-    _thread.start_new_thread(self._attach, ())
+    self._thread = self.ConnectionThread(self)
+    self._thread.start()
+    return self._thread
 
   def _attach(self):
     with serial.Serial(self.port, baudrate=self.baudrate) as s:
       self.serial = s
       self.running = True
       while self.running:
-        self.in_buf = bytearray()
-        self.handle()
+        try:
+          self.in_buf = bytearray()
+          self.handle()
+        except AutoSendException:
+          print('throw works')  # experimental
     self.in_buf = None
     self.serial = None
+    self._thread = None
 
   def handle(self):
-    char = self.proto_module().Char(self.read())
-    subhandler_name = 'handle_{}'.format(char.name.lower())
-    return getattr(self, subhandler_name)()
+    #try:  # experimental
+      #while not self.seriaL.in_waiting:
+      #  time.sleep(0.001)
+      char = self.proto_module().Char(self.read())
+      subhandler_name = 'handle_{}'.format(char.name.lower())
+      return getattr(self, subhandler_name)()
+    #except:
+    #  pass
 
   def handle_wakeup(self):
     pass
@@ -74,7 +98,19 @@ class VirtualStation(Connection):
     parts = m.split_instr(self.in_buf)
     cmd = m.Cmd(parts.cmd_byte)
     instr = self.station.instr[cmd]  # experimental
-    resp = instr.respond(parts, self.station)
-    self.write(resp)
+    sinstr = instr.srecv(parts, self.station)
+    if sinstr is not None:
+      self.write(sinstr)
 
 
+class PhysicalStation(Connection):
+
+  def handle_stx(self):
+    super().handle_stx()
+    m = self.proto_module()
+    parts = m.split_instr(self.in_buf)
+    cmd = m.Cmd(parts.cmd_byte)
+    instr = self.station.instr[cmd]  # experimental
+    pinstr = instr.precv(parts, self.station)
+    if pinstr is not None:
+      self.write(pinstr)

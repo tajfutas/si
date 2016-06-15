@@ -200,6 +200,19 @@ def to_sidate(D):
   return bytes((D.year % 100, D.month, D.day))
 
 
+def to_sitime4(T, rel_week=0):
+  assert (0 <= rel_week < 4)
+  weekday = T.isoweekday() - 1
+  pm = (T.strftime('%p') == 'PM')
+  TD = (rel_week << 4) + (weekday << 1) + pm
+  THTLval = (T.hour % 12) * 3600 + T.minute * 60 + T.second
+  THTLbyt = THTLval.to_bytes(2, 'big')
+  TH = THTLbyt[0]
+  TL = THTLbyt[1]
+  TSS = round(T.microsecond * 256 / 1000000)
+  return bytes((TD, TH, TL, TSS))
+
+
 def to_sitime63(T):
   return to_sitime74(T)[:-1]
 
