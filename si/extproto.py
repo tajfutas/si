@@ -272,7 +272,7 @@ class GetTime(Instruction):
       parts = split_instr(sinstr)
     assert parts.cmd_byte == cls.CMD.value
     T = common.from_sitime74(parts.data[2:])
-    station.time_diff = T - datatime.datetime.now()
+    station.time_diff = T - datetime.datetime.now()
 
   @classmethod
   def srecv(cls, pinstr, station):
