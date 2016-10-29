@@ -1,13 +1,18 @@
+import collections
 import datetime
 from enum import Enum
 import struct
 
 from . import common
 from . import proto
-from . import station
 
 CRC_POLY = 0x8005
 CRC_BITF = 0x8000
+
+instruction_part_names = ('wakeup', 'first_stx', 'second_stx',
+    'cmd_byte', 'length_byte', 'data', 'crc_16bit', 'etx')
+instruction_parts = collections.namedtuple('instruction_parts',
+    instruction_part_names)
 
 
 class Cmd(Enum):
@@ -92,84 +97,150 @@ def get_crc(bytes_):
           num = (num ^ CRC_POLY) & 65535
         num2 += num2 & 65535
       i += 1
-  return struct.pack('>H', num)
+  return num
 
 
-class Record(proto.Record):
+def instr(cmd, data=b''):
+  length_byte = struct.pack('B', len(data))
+  base = cmd.value + length_byte + data
+  crc = struct.pack('>H', get_crc(base))
+  return (
+      proto.Char.STX.value
+      +
+      base
+      +
+      crc
+      +
+      proto.Char.ETX.value
+      )
 
-  class State(Enum):
-    NULL = None
-    AWAKE = b'\xFF'
-    STX = b'\x02'
-    CMD = 'cmd'
-    LEN = 'len'
-    DATA = 'data'
-    CRC = 'crc'
-    ETX = b'\x03'
 
-  @classmethod
-  def from_cmd_and_data(cls, cmd, data=b'', wakeup=True,
-      n_stx=2):
-    assert (0 < n_stx < 3)
-    length_byte = struct.pack('B', len(data))
-    base = cmd.value + length_byte + data
-    data = (
-        (proto.Char.WAKEUP.value if wakeup else b'')
-        +
-        (n_stx * proto.Char.STX.value)
-        +
-        base
-        +
-        get_crc(base)
-        +
-        proto.Char.ETX.value
-        )
-    return cls(data)
+def split_instr(instr):
+  STRUCTURE = (
+      (proto.Char.WAKEUP, True),
+      (proto.Char.STX, False),
+      (proto.Char.STX, True),
+      (Cmd, False),
+      ('length_byte', False),
+      ('data', False),
+      ('crc_16bit', False),
+      (proto.Char.ETX, False),
+      )
+  result = [bytearray() for s in STRUCTURE]
+  i, si, L, len_data = 0, 0, len(instr), 0
+  while i < L:
+    byte = bytes([instr[i]])
+    for si_ in range(si, len(STRUCTURE)):
+      s = STRUCTURE[si_]
+      at, optional = s
+      if at in proto.Char.__members__.values():
+        if byte == at.value:
+          result[si_].extend(byte)
+          si += 1
+          i += 1
+          break
+        elif optional:
+          si += 1
+          continue
+        else:
+          raise ValueError('invalid instruction')
+      elif at == Cmd:
+        if byte not in valid_cmd_bytes:
+          raise ValueError('invalid instruction')
+        result[si_].extend(byte)
+        si += 1
+        i += 1
+        break
+      elif at == 'length_byte':
+        len_data = struct.unpack('B', byte)[0]
+        result[si_].extend(byte)
+        si += 1
+        if len_data == 0:
+          si += 1
+        i += 1
+        break
+      elif at == 'data':
+        result[si_].extend(byte)
+        i += 1
+        if len(result[si_]) == len_data:
+          si += 1
+        break
+      elif at == 'crc_16bit':
+        result[si_].extend(byte)
+        i += 1
+        if len(result[si_]) == 2:
+          si += 1
+        break
+      else:
+        raise ValueError('invalid instruction')
+    else:
+      raise ValueError('invalid instruction')
+  return instruction_parts(*(bytes(p) for p in result))
 
-  def __init__(self, data=None):
-    self.state =  self.State['NULL']
+
+class InstructionState(Enum):
+  NULL = None
+  AWAKE = b'\xFF'
+  STX = b'\x02'
+  CMD = 'cmd'
+  LEN = 'len'
+  DATA = 'data'
+  CRC = 'crc'
+  ETX = b'\x03'
+
+
+class InstructionConsumer(proto.InstructionConsumer):
+
+
+  def __init__(self):
+    self.state = InstructionState['NULL']
     self.raw_data = bytearray()
     self.cmd = None
     self.cmd_i = None
-    if data:
-      self.send(data)
 
   @property
-  def complete(self):
-    return (self.state == self.State['ETX'])
+  def instr(self):
+    if self.cmd:
+      return Instruction.instrs[self.cmd]
 
+  @property
   def data_len_i(self):
     if self.cmd_i:
       data_len_i = self.cmd_i + 1
       if data_len_i < len(self.raw_data):
         return data_len_i
 
+  @property
   def data_len(self):
-    data_len_i = self.data_len_i()
+    data_len_i = self.data_len_i
     if data_len_i:
       return self.raw_data[data_len_i]
 
+  @property
   def data_i(self):
-    data_len_i = self.data_len_i()
+    data_len_i = self.data_len_i
     if data_len_i:
       return data_len_i + 1
 
+  @property
   def data(self):
-    data_i = self.data_i()
+    data_i = self.data_i
     if data_i:
-      data_len = self.data_len()
+      data_len = self.data_len
       data = self.raw_data[data_i:data_i + data_len]
       if len(data) == data_len:
         return data
 
+  @property
   def crc_i(self):
-    data_i = self.data_i()
+    data_i = self.data_i
     if data_i:
-      data_len = self.data_len()
+      data_len = self.data_len
       return data_i + data_len
 
+  @property
   def crc(self):
-    crc_i = self.crc_i()
+    crc_i = self.crc_i
     if crc_i:
       crc = self.raw_data[crc_i:crc_i + 2]
       if len(crc) == 2:
@@ -177,10 +248,10 @@ class Record(proto.Record):
 
   def send_when_null(self, data):
     b = data[:1]
-    if b == proto.Char['WAKEUP'].value:
-      self.state = self.State['AWAKE']
-    elif b == proto.Char['STX'].value:
-      self.state = self.State['STX']
+    if b == si.proto.Char['WAKEUP']:
+      self.state = InstructionState['AWAKE']
+    elif b == si.proto.Char['STX']:
+      self.state = InstructionState['STX']
     else:
       raise ValueError(('invalid extended protocol byte '
           'received at NULL state: {:X}').format(b[0]))
@@ -189,9 +260,9 @@ class Record(proto.Record):
 
   def send_when_awake(self, data):
     b = data[:1]
-    if b == proto.Char['STX'].value:
-      self.state = self.State['STX']
-    elif b != proto.Char['WAKEUP'].value:
+    if b == si.proto.Char['STX']:
+      self.state = ProtocolState['STX']
+    elif b != si.proto.Char['WAKEUP']:
       raise ValueError(('invalid extended protocol byte '
           'received at AWAKE state: {:X}').format(b[0]))
     self.raw_data.extend(b)
@@ -199,52 +270,52 @@ class Record(proto.Record):
 
   def send_when_stx(self, data):
     b = data[:1]
-    if b != proto.Char['STX'].value:
+    if b != si.proto.Char['STX']:
       try:
         self.cmd = Cmd(b)
       except ValueError:
         raise ValueError(('invalid extended protocol byte '
             'received at STX state: {:X}').format(b[0]))
       self.cmd_i = len(self.raw_data)
-      self.state = self.State['CMD']
+      self.state = ProtocolState['CMD']
     self.raw_data.extend(b)
     return self.send(data[1:])
 
   def send_when_cmd(self, data):
-    self.state = self.State['LEN']
+    self.state = ProtocolState['LEN']
     self.raw_data.extend(data[:1])
     return self.send(data[1:])
 
   def send_when_len(self, data):
-    curr_len = len(self.raw_data[self.data_i():])
-    exp_len = self.data_len()
+    curr_len = len(self.raw_data[self.data_i:])
+    exp_len = self.data_len
     num_bytes_needed = max(0, exp_len - curr_len)
     num_bytes_available = min(len(data), num_bytes_needed)
     if num_bytes_needed == num_bytes_available:
-      self.state = self.State['DATA']
+      self.state = ProtocolState['DATA']
     self.raw_data.extend(data[:num_bytes_available])
     return self.send(data[num_bytes_available:])
 
   def send_when_data(self, data):
-    curr_len = len(self.raw_data[self.crc_i():])
+    curr_len = len(self.raw_data[self.crc_i:])
     exp_len = 2
     num_bytes_needed = max(0, exp_len - curr_len)
     num_bytes_available = min(len(data), num_bytes_needed)
     if num_bytes_needed == num_bytes_available:
-      self.state = self.State['CRC']
+      self.state = ProtocolState['CRC']
     self.raw_data.extend(data[:num_bytes_available])
-    if self.state == self.State['CRC']:
-      base = self.raw_data[self.cmd_i:self.crc_i()]
-      assert get_crc(base) == self.crc()
+    if self.state == ProtocolState['CRC']:
+      base = self.raw_data[self.cmd_i:self.crc_i]
+      assert get_crc(base) == self.crc
     return self.send(data[num_bytes_available:])
 
   def send_when_crc(self, data):
     b = data[:1]
-    if b != proto.Char['ETX'].value:
+    if b != si.proto.Char['ETX']:
       raise ValueError(('invalid extended protocol byte '
           'received at CRC state (ETX expected): {:X}').format(
           b[0]))
-    self.state = self.State['ETX']
+    self.state = ProtocolState['ETX']
     self.raw_data.extend(b)
     return self.send(data[1:])
 
@@ -252,57 +323,45 @@ class Record(proto.Record):
 class Instruction(proto.Instruction):
   PROTOCOL = 'extended'
 
+  @classmethod
+  def psend(cls):
+    return instr(self.CMD)
 
-class Response(proto.Response):
-  PROTOCOL = 'extended'
 
-
-class GetSystemDataInstruction(Instruction):
+class GetSystemData(Instruction):
   CMD = Cmd.GET_SYS_VAL
 
-  def __init__(self, adr=0, anz=128):
+  @classmethod
+  def precv(cls, sinstr, station):
+    if isinstance(sinstr, instruction_parts):
+      parts = sinstr
+    else:
+      parts = split_instr(sinstr)
+    assert parts.cmd_byte == cls.CMD.value
+    adr = parts.data[2]
+    anz = len(parts.data) - 3
+    station.mem[adr : adr + anz] = parts.data[3:]
+
+  @classmethod
+  def psend(cls, adr=0, anz=128):
     bb = bytes((adr, anz))
     assert bb[0] + bb[1] <= 128
-    self.adr = adr
-    self.anz = anz
+    return instr(cls.CMD, bb)
 
   @classmethod
-  def from_record(cls, r):
-    assert r.cmd == cls.CMD
-    adr, anz = r.data()
-    return cls(adr, anz)
-
-  def record(self, wakeup=True, n_stx=2):
-    data = bytes((self.adr, self.anz))
-    return Record.from_cmd_and_data(self.CMD, data,
-        wakeup=wakeup, n_stx=n_stx)
-
-
-class GetSystemDataResponse(Response):
-  CMD = Cmd.GET_SYS_VAL
-
-  def __init__(self, station_codenr, response_bytes, adr=0):
-    self.station_codenr = station_codenr
-    self.response_bytes = response_bytes
-    anz = len(response_bytes)
+  def srecv(cls, pinstr, station):
+    if isinstance(pinstr, instruction_parts):
+      parts = pinstr
+    else:
+      parts = split_instr(pinstr)
+    assert parts.cmd_byte == cls.CMD.value
+    assert len(parts.data) == 2
+    adr, anz = parts.data
     assert adr + anz <= 128
-    self.adr = adr
-
-  @classmethod
-  def from_record(cls, r):
-    assert r.cmd == cls.CMD
-    data = r.data()
-    station_codenr = station.cn1cn0_to_codenr(data[0:2])
-    adr = data[2]
-    response_bytes = data[3:]
-    return cls(station_codenr, response_bytes, adr)
-
-  def record(self):
-    cn1cn0 = station.codenr_to_cn1cn0(self.station_codenr)
-    adr_byte = bytes([self.adr])
-    data = cn1cn0 + bytes([self.adr]) + self.response_bytes
-    return Record.from_cmd_and_data(self.CMD, data,
-        wakeup=False, n_stx=1)
+    mem = station.mem[adr : adr + anz].tobytes()
+    cn10 = station.code_number_cn10
+    adr_byte = bytes([adr])
+    return instr(cls.CMD, cn10 + adr_byte + mem)
 
 
 class SetMsMode(Instruction):
@@ -407,31 +466,3 @@ class TriggerPunch(Instruction):
     mem = struct.pack('>I', bmem_adr)[1:]
     return instr(cls.CMD, cn10 + data + mem)
 
-
-class Transmit(Response):
-  CMD = Cmd.TRANS_REC
-
-  def __init__(self, station_codenr, card_nr, sitime4,
-      backup_mem_adr):
-    self.station_codenr = station_codenr
-    self.card_nr = card_nr
-    self.sitime4 = sitime4
-    self.backup_mem_adr = backup_mem_adr
-
-  @classmethod
-  def from_record(cls, r):
-    assert r.cmd == cls.CMD
-    data = r.data()
-    station_codenr = station.cn1cn0_to_codenr(data[0:2])
-    card_nr = struct.unpack('>I', data[2:6])[0]
-    sitime4 = data[6:10]
-    backup_mem_adr =  data[10:13]
-    return cls(station_codenr, card_nr, sitime4,
-        backup_mem_adr)
-
-  #def record(self):
-  #  cn1cn0 = station.codenr_to_cn1cn0(self.station_codenr)
-  #  adr_byte = bytes([self.adr])
-  #  data = cn1cn0 + bytes([self.adr]) + self.response_bytes
-  #  return Record.from_cmd_and_data(self.CMD, data,
-  #      wakeup=False, n_stx=1)

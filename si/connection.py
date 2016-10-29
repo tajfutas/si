@@ -1,24 +1,74 @@
-import time
-import threading
+import asyncio
+from enum import Enum
 
 import serial
+import serial.aio
 
 import si
 
 class AutoSendException(Exception): pass
 
 
+class Protocol(asyncio.Protocol):
+
+  def __init__(self, cnxn, *args, **kwargs):
+    super.__init__(*args, **kwargs)
+    self.cnxn = cnxn
+    self.loop = cnxn.loop
+    self.transport = None
+    self.curr_instr_data = None
+
+  @property
+  def proto_module(self):
+    if self.cnxn.station.legacy_protocol_mode:
+      return si.legproto
+    else:
+      return si.extproto
+
+  def connection_made(self, transport):
+    self.transport = transport
+    self.running = self.loop.create_future()
+    print('port opened', transport)
+    transport.serial.rts = False
+    transport.write(b'hello world\n')
+
+  def data_received(self, data):
+    print('data received', repr(data))
+    remaining_data = data
+    while True:
+      if self.curr_instr_data is None:
+        instr_data = self.proto_module.Record()
+        self.curr_instr_data = instr_data
+      try:
+        self.curr_instr_data.send(remaining_data)
+      except si.proto.RecordOverflow as ovrflw:
+        self.cnxn.instr_data_received(self.curr_instr_data)
+        self.curr_instr_data = None
+        remaining_data = ovrflw.data
+      else:
+        if self.curr_instr_data.complete:
+          self.cnxn.instr_data_received(self.curr_instr_data)
+          self.curr_instr_data = None
+        break
+
+  def connection_lost(self, exc):
+    print('port closed')
+    self.running.set_result(False)
+
+  def pause_writing(self):
+    print('pause writing')
+    print(self.transport.get_write_buffer_size())
+
+  def resume_writing(self):
+    print(self.transport.get_write_buffer_size())
+    print('resume writing')
+
+
+
 class Connection:
 
-  class ConnectionThread(threading.Thread):
-    def __init__(self, cnxn):
-      super().__init__()
-      self.cnxn = cnxn
-
-    def run(self):
-      return self.cnxn.__class__._attach(self.cnxn)
-
-  def __init__(self, station, port, baudrate=4800):
+  def __init__(self, station, port, baudrate=4800, loop=None):
+    self.loop = loop or asyncio.get_event_loop()
     self.station = station
     self.port = port
     self.baudrate = baudrate
@@ -27,44 +77,22 @@ class Connection:
     self.in_buf = None
     self._thread = None
 
-  def read(self, n=1):
-    data = self.serial.read(n)
-    self.in_buf.extend(data)
-    return data
+  async def attach(self, protocol=None):
+    protocol_class = protocol or Protocol
+    protocol_factory = lambda self=self: protocol(self)
+    transport, protocol = serial.aio.create_serial_connection(
+        self.loop, protocol, self.port, baudrate=self.baudrate)
+    self.loop.run_until_complete(coro)
+    self.loop.run_until_complete(protocol.running)
+    self.loop.close()
 
-  def write(self, data):
-    return self.serial.write(data)
 
-  def proto_module(self):
-    if self.station.legacy_protocol_mode:
-      return si.legproto
-    else:
-      return si.extproto
-
-  def attach(self):
-    self._thread = self.ConnectionThread(self)
-    self._thread.start()
-    return self._thread
-
-  def _attach(self):
-    with serial.Serial(self.port, baudrate=self.baudrate) as s:
-      self.serial = s
-      self.running = True
-      while self.running:
-        try:
-          self.in_buf = bytearray()
-          self.handle()
-        except AutoSendException:
-          print('throw works')  # experimental
-    self.in_buf = None
-    self.serial = None
-    self._thread = None
 
   def handle(self):
     #try:  # experimental
       #while not self.seriaL.in_waiting:
       #  time.sleep(0.001)
-      char = self.proto_module().Char(self.read())
+      char = self.proto_module.proto.Char(self.read())
       subhandler_name = 'handle_{}'.format(char.name.lower())
       return getattr(self, subhandler_name)()
     #except:
@@ -74,9 +102,9 @@ class Connection:
     pass
 
   def handle_stx(self):
-    m = self.proto_module()
+    m = self.proto_module
     cmd_byte = self.read()
-    if cmd_byte == m.Char.STX.value:
+    if cmd_byte == m.proto.Char.STX.value:
       # Two STX was send to ensure STX detection
       cmd_byte = self.read()
     cmd = m.Cmd(cmd_byte)
@@ -90,11 +118,22 @@ class Connection:
       etx = self.read()
 
 
+
+
+  def read(self, n=1):
+    data = self.serial.read(n)
+    self.in_buf.extend(data)
+    return data
+
+  def write(self, data):
+    return self.serial.write(data)
+
+
 class VirtualStation(Connection):
 
   def handle_stx(self):
     super().handle_stx()
-    m = self.proto_module()
+    m = self.proto_module
     parts = m.split_instr(self.in_buf)
     cmd = m.Cmd(parts.cmd_byte)
     instr = self.station.instr[cmd]  # experimental
@@ -103,11 +142,19 @@ class VirtualStation(Connection):
       self.write(sinstr)
 
 
+
 class PhysicalStation(Connection):
+
+  def __init__(self, station, port, baudrate=4800):
+    super().__init__(station, port, baudrate)
+    self.attach()
+    ####
+    #CMD = self.proto_module.Cmd[]
+
 
   def handle_stx(self):
     super().handle_stx()
-    m = self.proto_module()
+    m = self.proto_module
     parts = m.split_instr(self.in_buf)
     cmd = m.Cmd(parts.cmd_byte)
     instr = self.station.instr[cmd]  # experimental

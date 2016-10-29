@@ -1,21 +1,6 @@
 from enum import Enum
 
-
-class Char(Enum):
-  STX = b'\x02'
-      # Start of text, first byte to be transmitted
-  ETX = b'\x03'
-      # End of text, last byte to be transmitted
-  ACK = b'\x06'
-      # Positive handshake return
-      # when sent to BSx3..6 with a card inserted, causes beep
-      # until SI-card taken out
-  NAK = b'\x15'
-      # Negative handshake return
-  DLE = b'\x10'
-      # DeLimitEr to be inserted before data characters 00-1F
-  WAKEUP = b'\xFf'
-
+from . import proto
 
 class Cmd(Enum):
   SET_CARDNO = b'\x30'
@@ -45,4 +30,20 @@ class Cmd(Enum):
 
 
 def instr(cmd, data):
-  return Char.STX.value + cmd.value + data + Char.ETX.value
+  return (
+      proto.Char.STX.value
+      +
+      cmd.value
+      +
+      data
+      +
+      proto.Char.ETX.value
+      )
+
+
+class LegacyProtocolInstruction(proto.Instruction):
+  PROTOCOL = 'legacy'
+
+
+class GetSystemData(LegacyProtocolInstruction):
+  CMD = Cmd.GET_SYS_VAL

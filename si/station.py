@@ -8,6 +8,14 @@ PF = si.common.ProductFamily
 PT = si.common.ProductType
 
 
+def codenr_to_cn1cn0(codenr):
+  return struct.pack('>H', codenr)
+
+
+def cn1cn0_to_codenr(cn1cn0):
+  return struct.unpack('>H',cn1cn0)[0]
+
+
 class RegisterSIStationTypes(type):
   # http://python-3-patterns-idioms-test.readthedocs.io/en/lates
   # t/Metaprogramming.html#example-self-registration-of-subclass
@@ -38,11 +46,11 @@ class SIStation(metaclass=RegisterSIStationTypes):
   has_realtime_clock = True
   realtime_clock_enabled = True
 
-  additional_extproto_instructions = frozenset((  # experimental
-      si.extproto.GetSystemData,
-      si.extproto.GetTime,
-      si.extproto.SetMsMode,
-      ))
+ # additional_extproto_instructions = frozenset((  # experimental
+ #     si.extproto.GetSystemData,
+ #     si.extproto.GetTime,
+ #     si.extproto.SetMsMode,
+ #     ))
 
   @classmethod
   def product_config(cls):
@@ -74,6 +82,7 @@ class SIStation(metaclass=RegisterSIStationTypes):
     self._mem[12] = self.product_family.value
     self.time_diff = datetime.timedelta(0)  # experimental
     self.transfer_mode = si.common.MSMode.Master  # experimental
+    self.legacy_protocol_mode = False  # experimental
     self.instr = {i.CMD: i for c in self.__class__.__mro__
         if hasattr(c, 'additional_extproto_instructions')
         for i in c.additional_extproto_instructions
@@ -139,9 +148,9 @@ class SIStation(metaclass=RegisterSIStationTypes):
 
 class SIControlStationMixin:
 
-  additional_extproto_instructions = frozenset((  # experimental
-      si.extproto.TriggerPunch,
-      ))
+  #additional_extproto_instructions = frozenset((  # experimental
+  #    si.extproto.TriggerPunch,
+  #    ))
 
   @property
   def board_version(self):
@@ -407,7 +416,7 @@ class SIControlStationMixin:
 
   @property
   def code_number_cn10(self):
-    return struct.pack('>H', self.code_number)
+    return cn1cn0_from_code_nr(self.code_number)
 
 
   @property
