@@ -33,13 +33,55 @@ class Weekday(Enum):
   THURSDAY = 4
   FRIDAY = 5
   SATURDAY = 6
+  Sun = 0
+  Mon = 1
+  Tue = 2
+  Wed = 3
+  Thu = 4
+  Fri = 5
+  Sat = 6
+  sun = 0
+  mon = 1
+  tue = 2
+  wed = 3
+  thu = 4
+  fri = 5
+  sat = 6
+  SUN = 0
+  MON = 1
+  TUE = 2
+  WED = 3
+  THU = 4
+  FRI = 5
+  SAT = 6
+  Su = 0
+  Mo = 1
+  Tu = 2
+  We = 3
+  Th = 4
+  Fr = 5
+  Sa = 6
+  su = 0
+  mo = 1
+  tu = 2
+  we = 3
+  th = 4
+  fr = 5
+  sa = 6
+  SU = 0
+  MO = 1
+  TU = 2
+  WE = 3
+  TH = 4
+  FR = 5
+  SA = 6
 
 
 class ImmutableWithNamedReadOnlyAttributes(type):
   """
   Metaclass which populates the instance classes with read only
   property descriptors. The sequence of attribute names should
-  be defined as ::cls._NAMED_ATTRS::. Optionally
+  be defined as ::cls._NAMED_ATTR_NAMES::. Optionally
   ::cls._NAMED_ATTR_DOCS:: can contain the dosstrings of the
   properties.
 
@@ -51,35 +93,74 @@ class ImmutableWithNamedReadOnlyAttributes(type):
   """
   def __init__(cls, name, bases, nmspc):
     super().__init__(name, bases, nmspc)
-    has_docs = hasattr(cls, '._NAMED_ATTR_DOCS')
-    for i, attrname in enumerate(cls._NAMED_ATTRS):
+    has_docs = hasattr(cls, '_NAMED_ATTR_DOCS')
+    for i, attrname in enumerate(cls._NAMED_ATTR_NAMES):
       setattr(cls, attrname,
           property(lambda self, i=i: self._named_attrs[i],
-          doc=(cls._NAMED_ATTR_DOCS[i] if has_docs else None)
+          doc=(cls._NAMED_ATTR_DOCS[i] if has_docs
+              and cls._NAMED_ATTR_DOCS else None)
           ))
 
 
-class PunchTime(bytes,
+class BasePunchTime(bytes,
     metaclass=ImmutableWithNamedReadOnlyAttributes):
+  """
+  Baseclass for punch time formats. Subclass of bytes.
+  """
 
+  #: Private constant! Must be defined in subclasses.
+  #: Indicates the expected length of the data.
   _SIZE = 0
-  _NAMED_ATTRS = ()
+
+  #: Private constant! Must be defined in subclasses.
+  #: A tuple of strings with the name of the attributes which
+  #: will be added with their corresponding values (and
+  #: docstrings) to the instances.
+  #: Cooperates with _get_named_attrs_vals() (values) and the
+  #: optional _NAMED_ATTR_DOCS (docstrings).
+  _NAMED_ATTR_NAMES = ()
+
+  #: Private constant! Must be defined in subclasses.
+  #: A tuple of strings with the docstrings of the attributes
+  #: which will be added with their corresponding names and
+  #: values to the instances.
+  #: Cooperates with _NAMED_ATTR_NAMES (names) and
+  #: _get_named_attrs_vals() (values).
+  _NAMED_ATTR_DOCS = ()
 
   def __new__(cls, seq):
-    assert len(seq) == cls._SIZE
+    if len(seq) != cls._SIZE:
+      efs = 'invalid sequence length (expected {}): {}'
+      raise TypeError(efs.format(cls._SIZE, len(seq)))
     instance = super().__new__(cls, seq)
-    named_attrs = instance._get_named_attrs()
+    named_attrs = instance._get_named_attrs_vals()
     instance._named_attrs = named_attrs
     return instance
 
-  def _get_named_attrs(self):
-    raise NotImplementedError()
+  def _get_named_attrs_vals(self):
+    """
+    Private function! Should be defined in subclasses.
+
+    Returns a tuple of the values of the attributes which will
+    be added with their corresponding names (and docstring) to
+    the instances.
+    Cooperates with _NAMED_ATTR_NAMES (names) and the optional
+    _NAMED_ATTR_DOCS (docstrings).
+    """
+    return ()
 
 
-class FourBytesPunchTime(PunchTime):
+class FourBytesPunchTime(BasePunchTime):
+  """
+  Class for punch times stored in four bytes.
 
+  These bytes are named as TD, TH, TL, and TSS by the official
+  sources.
+
+  Source: PCPROG5 (pp. 11, 17)
+  """
   _SIZE = 4
-  _NAMED_ATTRS = (
+  _NAMED_ATTR_NAMES = (
       'weekcountrel',
       'weekday',
       'isoweekday',
@@ -91,13 +172,70 @@ class FourBytesPunchTime(PunchTime):
       'subsecond',
       'microsecond',
       )
+  _NAMED_ATTR_DOCS = (
+      """
+      4 week counter relative
+
+      More info: PCPROG5 (pp. 17)
+      """,
+      """
+      Day of Week in Weekday enumeration as per SportIdent
+      standard.
+      Sunday == 0, Monday == 1, ..., Saturday == 6
+
+      More info: PCPROG5 (pp. 17)
+      """,
+      """
+      Day of the week as per ISO 8601.
+      Monday == 1 ... Sunday == 7
+      """,
+      """
+      24h counter.
+      AM == False, PM == True
+      """,
+      """
+      Time elapsed from midnight or noon according to pm value
+      (False, True respectively), in seconds.
+      """,
+      """
+      Time elapsed from midnight or noon according to pm value
+      (False, True respectively), in hours.
+      """,
+      """
+      Time elapsed from hour, in minutes.
+      """,
+      """
+      Time elapsed from minute, in seconds.
+      """,
+      """
+      Subseconds in 1/256 seconds.
+      """,
+      """
+      Subseconds in microseconds (1/10^6 seconds).
+      """,
+      )
 
   @staticmethod
-  def _normalize_params(weekday, pm, hour, minute, second,
-      subsecond):
-    if subsecond == 256:
+  def _normalize_params(
+      weekday: int,
+      pm: bool,
+      hour: int,
+      minute: int,
+      second: int,
+      subsecond: int
+      ) -> typing.Tuple[int, bool, int, int, int, int]:
+    """
+    Private function!
+
+    Moves on the next possible higher parameter when subsecond
+    is 256. This can be easily necessary when instatntiated from
+    a datetime object.
+
+    Returns the normalized time parameters in the same order.
+    """
+    while subsecond >= 256:
+      subsecond -= 256
       second += 1
-      subsecond = 0
       if second == 60:
         minute += 1
         second = 0
@@ -123,6 +261,11 @@ class FourBytesPunchTime(PunchTime):
       second: int,
       subsecond: int
       ) -> 'cls':
+    """
+    Creates an instance from the time parameters.
+
+    More info: PCPROG5 (pp. 17)
+    """
     assert weekcountrel in range(5)
     assert weekday in range(7)
     assert pm in range(2)
@@ -141,6 +284,13 @@ class FourBytesPunchTime(PunchTime):
       T: datetime.datetime = None,
       weekcountrel: int = 0,
       ) -> 'cls':
+    """
+    Creates an instance from an optional datetime.datetime
+    (default PC time) object and the optional weakcountrel
+    (four weak couter relative) parameter (default 0).
+
+    More info: PCPROG5 (pp. 17)
+    """
     if T is None:
       T = datetime.datetime.now()
     weekday = T.isoweekday() % 7
@@ -159,6 +309,16 @@ class FourBytesPunchTime(PunchTime):
       Td: datetime.timedelta,
       weekcountrel: int = 0
       ) -> 'cls':
+    """
+    Creates an instance from weekday, a datetime.timedelta
+    object, and an optional weakcountrel (four weak couter
+    relative) parameter (default 0).
+
+    weekday can be either a Weekday enumeration, a string, or an
+    integer (Sunday: 0, Monday: 1, ..., Saturday: 6).
+
+    More info: PCPROG5 (pp. 17)
+    """
     if hasattr(weekday, 'value'):  # for Weekday Enum
       weekday = weekday.value
     elif isinstance(weekday, str):
@@ -191,7 +351,7 @@ class FourBytesPunchTime(PunchTime):
         self.subsecond,
         )
 
-  def _get_named_attrs(self):
+  def _get_named_attrs_vals(self):
     TD = self[0]
     TH = self[1]
     TL = self[2]
@@ -206,11 +366,21 @@ class FourBytesPunchTime(PunchTime):
     second = total_seconds % 60
     subsecond = TSS
     microsecond = round(subsecond * 1000000 / 256)
-    return (weekcountrel, weekday, isoweekday, pm,
-        total_seconds, hour, minute, second, subsecond,
-        microsecond)
+    return (
+      weekcountrel,
+      weekday,
+      isoweekday,
+      pm,
+      total_seconds,
+      hour,
+      minute,
+      second,
+      subsecond,
+      microsecond,
+      )
 
   def timedelta(self) -> datetime.timedelta:
+    """Time elapsed from midnight."""
     return datetime.timedelta(0,
         3600 * 12 * self.pm + self.total_seconds,
         self.microsecond)
