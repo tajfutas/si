@@ -3,6 +3,7 @@ import datetime
 from enum import Enum
 import struct
 import typing
+import warnings
 
 
 class Weekday(Enum):
@@ -154,10 +155,12 @@ class FourBytesPunchTime(BasePunchTime):
   """
   Class for punch times stored in four bytes.
 
-  These bytes are named as TD, TH, TL, and TSS by the official
-  sources.
+  These bytes are named as following by the official sources:
+  * TD, TH, TL, TSS
 
-  Source: PCPROG5 (pp. 11, 17)
+  Note that error codes are not yet supported!
+
+  Source: PCPROG5 (pp. 11 /SW 5.54-/, 17)
   """
   _SIZE = 4
   _NAMED_ATTR_NAMES = (
@@ -237,15 +240,15 @@ class FourBytesPunchTime(BasePunchTime):
       subsecond -= 256
       second += 1
       if second == 60:
-        minute += 1
         second = 0
+        minute += 1
         if minute == 60:
-          hour += 1
           minute = 0
+          hour += 1
           if hour == 12:
             if pm:
-              weekday = (weekday + 1) % 7
               pm = False
+              weekday = (weekday + 1) % 7
             else:
               pm = True
             hour = 0
@@ -295,13 +298,9 @@ class FourBytesPunchTime(BasePunchTime):
       T = datetime.datetime.now()
     weekday = T.isoweekday() % 7
     pm, hour = divmod(T.hour, 12)
-    minute = T.minute
-    second = T.second
     subsecond = round(T.microsecond * 256 / 1000000)
-    return cls.from_params(weekcountrel,
-        *cls._normalize_params(weekday, pm, hour, minute,
-            second, subsecond)
-        )
+    return cls.from_params(weekcountrel, *cls._normalize_params(
+        weekday, pm, hour, T.minute, T.second, subsecond))
 
   @classmethod
   def from_timedelta(cls,
@@ -384,3 +383,119 @@ class FourBytesPunchTime(BasePunchTime):
     return datetime.timedelta(0,
         3600 * 12 * self.pm + self.total_seconds,
         self.microsecond)
+
+
+class FiveBytesPunchTime(BasePunchTime):
+  """
+  Class for punch times stored in four bytes.
+
+  These bytes are named as following by the official sources:
+  * DATE1, DATE0, TH, TL, MS
+
+  Source: PCPROG5 (pp. 11 /SW 5.55+/)
+  """
+  _SIZE = 5
+
+  @staticmethod
+  def _normalize_params(
+      year: int,
+      month: int,
+      day: int,
+      pm: bool,
+      hour: int,
+      minute: int,
+      second: int,
+      subsecond: int
+      ) -> typing.Tuple[int, int, int, bool, int, int, int,
+          int]:
+    """
+    Private function!
+
+    Moves on the next possible higher parameter when subsecond
+    is 256. This can be easily necessary when instatntiated from
+    a datetime object.
+
+    Returns the normalized time parameters in the same order.
+    """
+    T = datetime.datetime(year, month, day, 12 * pm + hour,
+        minute, second)
+    seconds, subsecond = divmod(subsecond, 256)
+    T += datetime.timedelta(seconds=seconds)
+    pm, hour = divmod(T.hour, 12)
+    return (T.year, T.month, T.day, pm, hour, minute, second,
+        subsecond)
+
+  @classmethod
+  def from_params(cls,
+      year: int,
+      month: int,
+      day: int,
+      pm: bool,
+      hour: int,
+      minute: int,
+      second: int,
+      subsecond: int
+      ) -> 'cls':
+    """
+    Creates an instance from the time parameters.
+
+    More info: PCPROG5 (pp. 11)
+    """
+    # PCPROG5: "bit 7-2  6 bit year  0--64 part of year"
+    # unclear; contradiction: 64 takes 7 bit to store
+    # anticipated format: 2000 + value in 0--63 defines year
+    assert year in range(2000, 2064)
+    assert month in range(13)
+    assert day in range(32)
+    assert pm in range(2)
+    assert hour in range(12)
+    assert minute in range(60)
+    assert second in range(60)
+    assert subsecond in range(256)
+    DATE1 = ((year-2000) << 2) + ((month & 12) >> 2)
+    DATE0 = ((month & 12) << 4) + (day << 1) + pm
+    total_seconds = 3600 * hour + 60 * minute + second
+    TH, TL = struct.pack('>H', total_seconds)
+    TSS = subsecond
+    return cls(bytes((DATE1, DATE0, TH, TL, TSS)))
+
+
+  @classmethod
+  def from_datetime(cls,
+      T: datetime.datetime = None
+      ) -> 'cls':
+    """
+    Creates an instance from an optional datetime.datetime
+    (default PC time) object.
+
+    More info: PCPROG5 (pp. 11)
+    """
+    if T is None:
+      T = datetime.datetime.now()
+    pm, hour = divmod(T.hour, 12)
+    subsecond = round(T.microsecond * 256 / 1000000)
+    return cls.from_params(*cls._normalize_params(
+        T.year, T.month, T.day,
+        pm, hour, T.minute, T.second, subsecond))
+
+    ## TODO...
+
+  def __init__(self, *args):
+    warnings.warn('untested: {}'.format(self.__class__))
+    super().__init__()
+
+
+class SevenBytesPunchTime(BasePunchTime):
+  """
+  Class for punch times stored in four bytes.
+
+  These bytes are named as following by the official sources:
+  * YY, MM, DD, TWD, TH, TL, TSS
+  * CD2, CD1, CD0, TD, TH, TL, TSS
+  .
+
+  Source: PCPROG5 (pp. 17)
+  """
+  _SIZE = 7
+
+  ## TODO...
