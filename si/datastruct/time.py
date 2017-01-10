@@ -427,12 +427,12 @@ class FiveBytesTime1(BaseTime):
     """
     # Sources:
     # PCPROG5 (pp. 11 /SW 5.55+/)
-    # Communication (Communication._parsePunchMemoryRecord())
+    # Communication.cs 9e2e1aa (#L1958-L2323)
 
     # <- PCPROG5: "bit 7-2  6 bit year  0--64 part of year"
     # -> unclear; contradiction: 64 takes 7 bit to store
     # <- Communication: "num4 = (num & 64512) >> 10;
-    #      num4 += 2000;"
+    #     num4 += 2000;"
     # -> format: 2000 + value in 0--63 defines year
     assert year in range(2000, 2064)
     assert month in range(13)

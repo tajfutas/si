@@ -1,0 +1,31 @@
+References
+==========
+
+## Decompiled [SportIdent]&#8203; [Config+] DLLs
+
+* _url_: <http://github.com/tajfutas/si-configplus-decompiled>
+
+### SPORTident.Communication 9e291aa
+
+* _name_: SPORTident.Communication
+* _version_: 2.14.6135.14495
+* _filename_: SPORTident.Communication.dll
+* _url_: <https://github.com/tajfutas/si-configplus-decompiled/tree/9e2e1aa3415ec82fcaf59e17f93521ca76c988ca/SPORTident.Communication.dll>
+
+#### Communication.cs 9e291aa
+
+* _name_: SPORTident.Communication.Communication
+* _url_: <https://github.com/tajfutas/si-configplus-decompiled/blob/9e2e1aa3415ec82fcaf59e17f93521ca76c988ca/SPORTident.Communication.dll/SPORTident.Communication/Communication.cs>
+
+## PCPROG5
+
+* _name_: "PC-Programmers Guide"
+* _version_: "Version 5, Ver 1.1 (2012-07-03)"
+* _filename_: "pcprog5.pdf"
+* _url_: <http://www.sportident.com/media/kunena/attachments/51/pcpro5_2013-05-16.zip>
+
+
+
+
+[SportIdent]: //www.sportident.com
+[Config+]: //www.sportident.com/products/96-software/156-sportident-config-plus.html
