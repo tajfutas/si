@@ -5,6 +5,8 @@ import typing
 
 
 class AirPlusRadioMode(Enum):
+  # References:
+  # SPORTident 9e291aa \AirPlusRadioMode.cs
   NotSetOrDisabled = 0
   SrRadioSendLast = 1
   SrRadioSendAll = 2
@@ -12,6 +14,8 @@ class AirPlusRadioMode(Enum):
 
 
 class AirPlusSpecialMode(Enum):
+  # References:
+  # SPORTident 9e291aa \AirPlusSpecialMode.cs
   NotSetOrDisabled = 0
   SiacBatteryTest = 123
   SiacSwitchOn = 124
@@ -20,12 +24,17 @@ class AirPlusSpecialMode(Enum):
 
 
 class BeaconTimingMode(Enum):
+  # References:
+  # SPORTident 9e291aa \BeaconTimingMode.cs
   Unknown = -1
   TimingMode = 0
   PunchingMode = 1
 
 
 class CardFamily(Enum):
+  # References:
+  # Helper.cs 9e291aa (#L692-L733)
+  # TODO: Split? More source.
   Card5Card6 = 0
   Card9 = 1
   Card8 = 2
@@ -38,7 +47,8 @@ class CardFamily(Enum):
 
 
 class CardType(Enum):
-  # SPORTident.CardType
+  # References:
+  # SPORTident 9e291aa \CardType.cs
   NotSet = 0
   Card5 = 1
   Card6 = 2
@@ -58,6 +68,13 @@ class CardType(Enum):
 
 
 class DayOfWeek(Enum):
+  """
+  Day of week enumeration.
+  Sunday == 0 ... Saturday == 6
+  """
+  # References:
+  # PCPROG5 (p. 17)
+  # SPORTident 9e291aa \DayOfWeek.cs
   Sunday = 0
   Monday = 1
   Tuesday = 2
@@ -66,9 +83,25 @@ class DayOfWeek(Enum):
   Friday = 5
   Saturday = 6
   NotSetOrInvalid = 7
+  Sun = 0
+  Mon = 1
+  Tue = 2
+  Wed = 3
+  Thu = 4
+  Fri = 5
+  Sat = 6
+  Su = 0
+  Mo = 1
+  Tu = 2
+  We = 3
+  Th = 4
+  Fr = 5
+  Sa = 6
 
 
 class EvaluationStatus(Enum):
+  # References:
+  # SPORTident 9e291aa \EvaluationStatus.cs
   NotSet = 0
   Pending = 1
   Finished = 2
@@ -81,22 +114,29 @@ class EvaluationStatus(Enum):
 
 
 class EventForm(Enum):
+  # References:
+  # SPORTident 9e291aa \EventForm.cs
   Single = 0
   Relay = 1
 
 
 class FractionType(Enum):
+  # References:
+  # SPORTident 9e291aa \FractionType.cs
   None_ = 0
   One50Th = 50
   One256Th = 256
 
 
 class MSMode(Enum):
+  # TODO: Source.
   Master = 77
   Slave = 83
 
 
 class OperatingMode(Enum):
+  # References:
+  # SPORTident 9e291aa \OperatingMode.cs
   Unknown = 0
   DControl = 1
   Control = 2
@@ -119,61 +159,16 @@ class OperatingMode(Enum):
   BcLineSlave2 = 31
 
 
-class ProductFamily(Enum):
-  _Obsolete = NotImplemented
-  NotSet = 0
-  SimSrr = 33
-  Bs8SiMaster = 136
-  Bs10UfoReaderSiGolf = 138
-  Bs10UfoReaderSportIdent = 139
-  Bsx4 = 148
-  Bsx6 = 150
-  Bsx7 = 151
-  Bsx8 = 152
-  Bs11Large = 154
-  Bs11Small = 155
-  Bs12GsmUart = 156
-  SiGsmSrr = 157
-  SiPoint = 241
-
-
-class ProductType(Enum):
-  _Obsolete = NotImplemented
-  NotSet = 0
-  SimSrr = 33
-  Bs8SiMaster = 33160
-  Bs10UfoReaderSiGolf = 35210
-  Bs10UfoReaderSportIdent = 35211
-  Bsx4 = 148
-  Bsx6 = 150
-  Bsf7 = 33175
-  Bsm7 = 37271
-  Bs7S = 38295
-  Bs7P = 45463
-  Bsf8 = 33176
-  Bsm8 = 37272
-  Bs11Large = 40346
-  Bs11Small = 52635
-  Bs12GsmUart = 6556
-  SiGsmSrr = 7069
-  SiPointGolf = 37105
-  SiPointSportident = 37617
-
-
-class SimSrrFrequencyChannels(Enum):
-  NotSet = -1
-  Red = 0
-  Blue = 1
-  Yellow = 2
-  Green = 3
-
-
 class StampSource(Enum):
+  # References:
+  # SPORTident 9e291aa \StampSource.cs
   Readout = 0
   Online = 1
   Backup = 2
   RadioReadout = 3
 
+
+# TODO: Review functions and their namespace
 
 def _get_YYYY(YY):
   # standard way:

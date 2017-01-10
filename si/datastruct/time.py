@@ -4,35 +4,7 @@ from enum import Enum
 import struct
 import typing
 
-
-class Weekday(Enum):
-  """
-  Day of week enumeration.
-  Sunday == 0 ... Saturday == 6
-  """
-  # Sources:
-  # PCPROG5 (p. 17)
-  Sunday = 0
-  Monday = 1
-  Tuesday = 2
-  Wednesday = 3
-  Thursday = 4
-  Friday = 5
-  Saturday = 6
-  Sun = 0
-  Mon = 1
-  Tue = 2
-  Wed = 3
-  Thu = 4
-  Fri = 5
-  Sat = 6
-  Su = 0
-  Mo = 1
-  Tu = 2
-  We = 3
-  Th = 4
-  Fr = 5
-  Sa = 6
+import si.common
 
 
 class _docstring(Enum):
@@ -41,6 +13,7 @@ class _docstring(Enum):
   isoweekday = (
   """
   Day of the week as per ISO 8601
+
   Monday == 1 ... Sunday == 7
   """)
   microsecond = "Subseconds in microseconds"
@@ -49,6 +22,7 @@ class _docstring(Enum):
   pm = (
   """
   24h counter
+
   AM == False, PM == True
   """)
   second = "Seconds"
@@ -60,11 +34,14 @@ class _docstring(Enum):
   weekcountrel = (
   """
   4 week counter relative
+
   More info: PCPROG5 (pp. 17)
   """)
-  weekday = (
+  dayofweek = (
   """
-  Day of Week in Weekday enumeration as per SportIdent standard
+  Day of Week in si.common.DayOfWeek enumeration as per
+  SportIdent standard
+
   Sunday == 0, Monday == 1, ..., Saturday == 6
   """)
   year2000_2063 = "Year from 2000 to 2063"
@@ -159,7 +136,7 @@ class FourBytesTime1(BaseTime):
   _SIZE = 4
   _NAMED_ATTR_NAMES = (
       'weekcountrel',
-      'weekday',
+      'dayofweek',
       'pm',
       'hour',
       'minute',
@@ -171,7 +148,7 @@ class FourBytesTime1(BaseTime):
     )
   _NAMED_ATTR_DOCS = (
       _docstring.weekcountrel.value,
-      _docstring.weekday.value,
+      _docstring.dayofweek.value,
       _docstring.pm.value,
       _docstring.hour.value,
       _docstring.minute.value,
@@ -184,7 +161,7 @@ class FourBytesTime1(BaseTime):
 
   @staticmethod
   def _normalize_params(
-      weekday: int,
+      dayofweek: int,
       pm: bool,
       hour: int,
       minute: int,
@@ -212,16 +189,16 @@ class FourBytesTime1(BaseTime):
           if hour == 12:
             if pm:
               pm = False
-              weekday = (weekday + 1) % 7
+              dayofweek = (dayofweek + 1) % 7
             else:
               pm = True
             hour = 0
-    return weekday, pm, hour, minute, second, subsecond
+    return dayofweek, pm, hour, minute, second, subsecond
 
   @classmethod
   def from_params(cls,
       weekcountrel: int,
-      weekday: int,
+      dayofweek: int,
       pm: bool,
       hour: int,
       minute: int,
@@ -232,13 +209,13 @@ class FourBytesTime1(BaseTime):
     Creates an instance from the time parameters.
     """
     assert weekcountrel in range(5)
-    assert weekday in range(7)
+    assert dayofweek in range(7)
     assert pm in range(2)
     assert hour in range(12)
     assert minute in range(60)
     assert second in range(60)
     assert subsecond in range(256)
-    TD = (weekcountrel << 4) + (weekday << 1) + pm
+    TD = (weekcountrel << 4) + (dayofweek << 1) + pm
     total_second = 3600 * hour + 60 * minute + second
     TH, TL = struct.pack('>H', total_second)
     TSS = subsecond
@@ -256,32 +233,28 @@ class FourBytesTime1(BaseTime):
     """
     if T is None:
       T = datetime.datetime.now()
-    weekday = T.isoweekday() % 7
+    dayofweek = T.isoweekday() % 7
     pm, hour = divmod(T.hour, 12)
     subsecond = round(T.microsecond * 256 / 1000000)
     return cls.from_params(weekcountrel, *cls._normalize_params(
-        weekday, pm, hour, T.minute, T.second, subsecond))
+        dayofweek, pm, hour, T.minute, T.second, subsecond))
 
   @classmethod
   def from_timedelta(cls,
-      weekday: typing.Union[Weekday, str, int],
+      dayofweek: typing.Union[si.common.DayOfWeek, str, int],
       Td: datetime.timedelta,
       weekcountrel: int = 0
     ) -> 'cls':
     """
-    Creates an instance from weekday, a datetime.timedelta
+    Creates an instance from day of week, a datetime.timedelta
     object, and an optional weakcountrel (four weak couter
     relative) parameter (default 0).
 
-    weekday can be either a Weekday enumeration, a string, or an
-    integer (Sunday: 0, Monday: 1, ..., Saturday: 6).
+    dayofweek can be either a si.common.DayOfWeek enumeration,
+    a string, or an integer
+    (Sunday: 0, Monday: 1, ..., Saturday: 6).
     """
-    if hasattr(weekday, 'value'):  # for Weekday Enum
-      weekday = weekday.value
-    elif isinstance(weekday, str):
-      weekday = Weekday[weekday.title()].value
-    else:
-      weekday = Weekday(weekday).value
+    dayofweek = ensure_dayofweek_enum(dayofweek)
     assert (datetime.timedelta(0) <= Td < datetime.timedelta(1))
     pm = (True if 12 * 60 * 60 < Td.seconds else False)
     hour = Td.seconds // 3600
@@ -293,14 +266,14 @@ class FourBytesTime1(BaseTime):
       subsecond = 0
     return cls.from_params(weekcountrel,
         *cls._normalize_params(
-            weekday, pm, hour, minute, second, subsecond)
+            dayofweek, pm, hour, minute, second, subsecond)
       )
 
   def __str__(self):
     fstr = '<T4.1: W{} D{} {} {:0>2}:{:0>2}:{:0>2}.{:0>3}/256>'
     return fstr.format(
         self.weekcountrel,
-        self.weekday.value,
+        self.dayofweek.value,
         ('PM' if self.pm else 'AM'),
         self.hour,
         self.minute,
@@ -314,8 +287,8 @@ class FourBytesTime1(BaseTime):
     TL = self[2]
     TSS = self[3]
     weekcountrel = TD >> 4 & 0b11
-    weekday = Weekday(TD >> 1 & 0b1110)
-    isoweekday = (weekday.value if 0 < weekday.value else 7)
+    dayofweek = si.common.DayOfWeek(TD >> 1 & 0b1110)
+    isoweekday = dayofweek2isoweekday(dayofweek)
     pm = bool(TD & 0b1)
     total_second = struct.unpack('>H', bytes([TH, TL]))[0]
     hour = total_second // 3600
@@ -325,7 +298,7 @@ class FourBytesTime1(BaseTime):
     microsecond = round(subsecond * 1000000 / 256)
     return (
         weekcountrel,
-        weekday,
+        dayofweek,
         pm,
         hour,
         minute,
@@ -363,7 +336,7 @@ class FiveBytesTime1(BaseTime):
       'minute',
       'second',
       'subsecond',
-      'weekday',
+      'dayofweek',
       'isoweekday',
       'total_second',
       'microsecond',
@@ -377,7 +350,7 @@ class FiveBytesTime1(BaseTime):
       _docstring.minute.value,
       _docstring.second.value,
       _docstring.subsecond.value,
-      _docstring.weekday.value,
+      _docstring.dayofweek.value,
       _docstring.isoweekday.value,
       _docstring.total_second.value,
       _docstring.microsecond.value,
@@ -425,7 +398,7 @@ class FiveBytesTime1(BaseTime):
     """
     Creates an instance from the time parameters.
     """
-    # Sources:
+    # References:
     # PCPROG5 (pp. 11 /SW 5.55+/)
     # Communication.cs 9e2e1aa (#L1958-L2323)
 
@@ -483,7 +456,7 @@ class FiveBytesTime1(BaseTime):
     microsecond = round(subsecond * 1000000 / 256)
     date = datetime.date(year, month, day)
     isoweekday = date.isoweekday()
-    weekday = isoweekday2weekday(isoweekday)
+    dayofweek = isoweekday2dayofweek(isoweekday)
     return (
         year,
         month,
@@ -493,7 +466,7 @@ class FiveBytesTime1(BaseTime):
         minute,
         second,
         subsecond,
-        weekday,
+        dayofweek,
         isoweekday,
         total_second,
         microsecond,
@@ -522,16 +495,57 @@ class SevenBytesTime(BaseTime):
   ## TODO...
 
 
-def isoweekday2weekday(isoweekday):
+def dayofweek2isoweekday(
+    dayofweek: typing.Union[si.common.DayOfWeek, str, int]
+  ) -> int:
   """
-  Converts SI weekday to ISO weekday
+  Converts SI day of week to ISO weekday
 
-  Return Day of Week in Weekday enumeration as per SportIdent
-  standard (Sunday == 0, Monday == 1, ..., Saturday == 6)
+  Returns day of the week as per ISO 8601 standard
+  (Monday == 1 ... Sunday == 7) from the given SportIdent
+  day of week value
+  (Sunday == 0, Monday == 1, ..., Saturday == 6).
+  """
+  dayofweek = ensure_dayofweek_enum(dayofweek)
+  if dayofweek.value == 7:
+    return None
+  else:
+    return (dayofweek.value if 0 < dayofweek.value else 7)
+
+
+def ensure_dayofweek_enum(
+    dayofweek: typing.Union[si.common.DayOfWeek, str, int]
+  ) -> si.common.DayOfWeek:
+  """
+  Ensures si.common.DayOfWeek
+
+  Returns an si.common.DayOfWeek enumeration from the given
+  value, be it an existing si.common.DayOfWeek, a string with
+  the english name or abbreviation of the day, or an integer
+  matching the SportIdent day of week standard
+  (Sunday == 0, Monday == 1, ..., Saturday == 6).
+  """
+  if hasattr(dayofweek, 'value'):
+    return si.common.DayOfWeek(dayofweek.value)
+  elif isinstance(dayofweek, str):
+    return si.common.DayOfWeek[dayofweek.title()]
+  else:
+    return si.common.DayOfWeek(dayofweek)
+
+
+def isoweekday2dayofweek(
+    isoweekday: int
+  ) -> si.common.DayOfWeek:
+  """
+  Converts SI day of week to ISO weekday
+
+  Returns day of week in si.common.DayOfWeek enumeration as per
+  SportIdent standard
+  (Sunday == 0, Monday == 1, ..., Saturday == 6)
   from the given day of the week as per ISO 8601
   standard (Monday == 1 ... Sunday == 7).
   """
-  weekday = isoweekday
-  if weekday == 7:
-    weekday = 0
-  return Weekday(weekday)
+  dayofweek = isoweekday
+  if dayofweek == 7:
+    dayofweek = 0
+  return si.common.DayOfWeek(dayofweek)

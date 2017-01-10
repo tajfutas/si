@@ -5,6 +5,23 @@ References
 
 * _url_: <http://github.com/tajfutas/si-configplus-decompiled>
 
+### SPORTident.Common 9e291aa
+
+* _name_: SPORTident.Common
+* _version_: 1.53.6135.14494
+* _filename_: SPORTident.Common.dll
+* _url_: <https://github.com/tajfutas/si-configplus-decompiled/tree/9e2e1aa3415ec82fcaf59e17f93521ca76c988ca/SPORTident.Common.dll>
+
+#### Helper.cs 9e291aa
+
+* _name_: SPORTident.Common.Helper
+* _url_: <https://github.com/tajfutas/si-configplus-decompiled/blob/9e2e1aa3415ec82fcaf59e17f93521ca76c988ca/SPORTident.Common.dll/SPORTident.Common/Helper.cs>
+
+#### SPORTident 9e291aa
+
+* _name_: SPORTident.SPORTident
+* _url_: <https://github.com/tajfutas/si-configplus-decompiled/tree/9e2e1aa3415ec82fcaf59e17f93521ca76c988ca/SPORTident.Common.dll/SPORTident>
+
 ### SPORTident.Communication 9e291aa
 
 * _name_: SPORTident.Communication
