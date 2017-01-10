@@ -36,9 +36,9 @@ References
 
 ## PCPROG5
 
-* _name_: "PC-Programmers Guide"
-* _version_: "Version 5, Ver 1.1 (2012-07-03)"
-* _filename_: "pcprog5.pdf"
+* _name_: PC-Programmers Guide
+* _version_: Version 5, Ver 1.1 (2012-07-03)
+* _filename_: pcprog5.pdf
 * _url_: <http://www.sportident.com/media/kunena/attachments/51/pcpro5_2013-05-16.zip>
 
 
