@@ -2,6 +2,7 @@ from enum import Enum
 
 
 class ProductFamily(Enum):
+  # References:
   # SPORTident.Communication 9e291aa \ProductFamily.cs
   _Obsolete = NotImplemented
   NotSet = 0
@@ -21,6 +22,7 @@ class ProductFamily(Enum):
 
 
 class ProductType(Enum):
+  # References:
   # SPORTident.Communication 9e291aa \ProductType.cs
   _Obsolete = NotImplemented
   NotSet = 0
@@ -45,6 +47,7 @@ class ProductType(Enum):
 
 
 class SimSrrFrequencyChannels(Enum):
+  # References:
   # SPORTident.Communication 9e291aa \SimSrrFrequencyChannels.cs
   NotSet = -1
   Red = 0
