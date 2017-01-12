@@ -1,15 +1,8 @@
 __all__ = [
     'common',
-    'connection'
-    'data'
-    'extproto',
-    'legproto',
-    'station',
+    'communication'
     ]
 
+from .si import *
 from . import common
-from . import connection
-from . import datastruct
-from . import legproto
-from . import extproto
-from . import station
+from . import communication

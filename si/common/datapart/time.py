@@ -4,7 +4,7 @@ from enum import Enum
 import struct
 import typing
 
-import si.common
+import si
 
 
 class _docstring(Enum):
@@ -39,7 +39,7 @@ class _docstring(Enum):
   """)
   dayofweek = (
   """
-  Day of Week in si.common.DayOfWeek enumeration as per
+  Day of Week in si.DayOfWeek enumeration as per
   SportIdent standard
 
   Sunday == 0, Monday == 1, ..., Saturday == 6
@@ -241,7 +241,7 @@ class FourBytesTime1(BaseTime):
 
   @classmethod
   def from_timedelta(cls,
-      dayofweek: typing.Union[si.common.DayOfWeek, str, int],
+      dayofweek: typing.Union[si.DayOfWeek, str, int],
       Td: datetime.timedelta,
       weekcountrel: int = 0
     ) -> 'cls':
@@ -250,7 +250,7 @@ class FourBytesTime1(BaseTime):
     object, and an optional weakcountrel (four weak couter
     relative) parameter (default 0).
 
-    dayofweek can be either a si.common.DayOfWeek enumeration,
+    dayofweek can be either a si.DayOfWeek enumeration,
     a string, or an integer
     (Sunday: 0, Monday: 1, ..., Saturday: 6).
     """
@@ -287,7 +287,7 @@ class FourBytesTime1(BaseTime):
     TL = self[2]
     TSS = self[3]
     weekcountrel = TD >> 4 & 0b11
-    dayofweek = si.common.DayOfWeek(TD >> 1 & 0b1110)
+    dayofweek = si.DayOfWeek(TD >> 1 & 0b1110)
     isoweekday = dayofweek2isoweekday(dayofweek)
     pm = bool(TD & 0b1)
     total_second = struct.unpack('>H', bytes([TH, TL]))[0]
@@ -496,7 +496,7 @@ class SevenBytesTime(BaseTime):
 
 
 def dayofweek2isoweekday(
-    dayofweek: typing.Union[si.common.DayOfWeek, str, int]
+    dayofweek: typing.Union[si.DayOfWeek, str, int]
   ) -> int:
   """
   Converts SI day of week to ISO weekday
@@ -514,32 +514,32 @@ def dayofweek2isoweekday(
 
 
 def ensure_dayofweek_enum(
-    dayofweek: typing.Union[si.common.DayOfWeek, str, int]
-  ) -> si.common.DayOfWeek:
+    dayofweek: typing.Union[si.DayOfWeek, str, int]
+  ) -> si.DayOfWeek:
   """
-  Ensures si.common.DayOfWeek
+  Ensures si.DayOfWeek
 
-  Returns an si.common.DayOfWeek enumeration from the given
-  value, be it an existing si.common.DayOfWeek, a string with
-  the english name or abbreviation of the day, or an integer
-  matching the SportIdent day of week standard
+  Returns an si.DayOfWeek enumeration from the given value,
+  be it an existing si.DayOfWeek, a string with the english name
+  or abbreviation of the day, or an integer matching the
+  SportIdent day of week standard
   (Sunday == 0, Monday == 1, ..., Saturday == 6).
   """
   if hasattr(dayofweek, 'value'):
-    return si.common.DayOfWeek(dayofweek.value)
+    return si.DayOfWeek(dayofweek.value)
   elif isinstance(dayofweek, str):
-    return si.common.DayOfWeek[dayofweek.title()]
+    return si.DayOfWeek[dayofweek.title()]
   else:
-    return si.common.DayOfWeek(dayofweek)
+    return si.DayOfWeek(dayofweek)
 
 
 def isoweekday2dayofweek(
     isoweekday: int
-  ) -> si.common.DayOfWeek:
+  ) -> si.DayOfWeek:
   """
   Converts SI day of week to ISO weekday
 
-  Returns day of week in si.common.DayOfWeek enumeration as per
+  Returns day of week in si.DayOfWeek enumeration as per
   SportIdent standard
   (Sunday == 0, Monday == 1, ..., Saturday == 6)
   from the given day of the week as per ISO 8601
@@ -548,4 +548,4 @@ def isoweekday2dayofweek(
   dayofweek = isoweekday
   if dayofweek == 7:
     dayofweek = 0
-  return si.common.DayOfWeek(dayofweek)
+  return si.DayOfWeek(dayofweek)

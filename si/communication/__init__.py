@@ -1,5 +1,10 @@
 from enum import Enum
 
+__all__ = [
+    'datapart',
+    ]
+
+from . import datapart
 
 class ProductFamily(Enum):
   # References:
@@ -54,3 +59,6 @@ class SimSrrFrequencyChannels(Enum):
   Blue = 1
   Yellow = 2
   Green = 3
+
+
+del Enum
