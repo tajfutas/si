@@ -36,6 +36,15 @@ References
 * _url_: <https://github.com/tajfutas/si-configplus-decompiled/blob/9e2e1aa3415ec82fcaf59e17f93521ca76c988ca/SPORTident.Communication.dll/SPORTident.Communication/Communication.cs>
 
 
+## PCPROG4
+
+* _name_: PC-Programmers Guide
+* _version_: Version 4.0x_1
+* _author_: AES GmbH Arnstadt, Germany
+* _filename_: pcprog.htm
+* _url_: <https://www.sportident.com/media/kunena/attachments/43/pcpro40x_2.zip>
+
+
 ## PCPROG5
 
 * _name_: PC-Programmers Guide
@@ -57,3 +66,5 @@ References
 
 [SportIdent]: //www.sportident.com
 [Config+]: //www.sportident.com/products/96-software/156-sportident-config-plus.html
+
+

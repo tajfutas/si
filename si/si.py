@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import IntEnum
 
 
-class AirPlusRadioMode(Enum):
+class AirPlusRadioMode(IntEnum):
   # References:
   # SPORTident 9e291aa \AirPlusRadioMode.cs
   NotSetOrDisabled = 0
@@ -10,7 +10,7 @@ class AirPlusRadioMode(Enum):
   SrRadioSendAllNew = 3
 
 
-class AirPlusSpecialMode(Enum):
+class AirPlusSpecialMode(IntEnum):
   # References:
   # SPORTident 9e291aa \AirPlusSpecialMode.cs
   NotSetOrDisabled = 0
@@ -20,7 +20,7 @@ class AirPlusSpecialMode(Enum):
   SiacRadioReadout = 127
 
 
-class BeaconTimingMode(Enum):
+class BeaconTimingMode(IntEnum):
   # References:
   # SPORTident 9e291aa \BeaconTimingMode.cs
   Unknown = -1
@@ -28,13 +28,20 @@ class BeaconTimingMode(Enum):
   PunchingMode = 1
 
 
-class CardFamily(Enum):
+class CardFamily(IntEnum):
   # References:
   # Helper.cs 9e291aa (#L692-L733)
   # TODO: Split? More source.
-  Card5Card6 = 0
+  NotSet = 0
+  Card5 = 0
+  Card_5U = 0
+  Card_5R = 0
+  Card6 = 0
   Card9 = 1
   Card8 = 2
+  ComCardUp = 2
+  ComCardPro = 2
+  ComCardAir = 2
   PCard = 4
   TCard = 6
   FCard = 14
@@ -43,7 +50,7 @@ class CardFamily(Enum):
   Card11 = 15
 
 
-class CardType(Enum):
+class CardType(IntEnum):
   # References:
   # SPORTident 9e291aa \CardType.cs
   NotSet = 0
@@ -64,7 +71,7 @@ class CardType(Enum):
   ComCardAir = 15
 
 
-class DayOfWeek(Enum):
+class DayOfWeek(IntEnum):
   """
   Day of week enumeration.
   Sunday == 0 ... Saturday == 6
@@ -96,7 +103,7 @@ class DayOfWeek(Enum):
   Sa = 6
 
 
-class EvaluationStatus(Enum):
+class EvaluationStatus(IntEnum):
   # References:
   # SPORTident 9e291aa \EvaluationStatus.cs
   NotSet = 0
@@ -110,14 +117,14 @@ class EvaluationStatus(Enum):
   NotCompetitive = -5
 
 
-class EventForm(Enum):
+class EventForm(IntEnum):
   # References:
   # SPORTident 9e291aa \EventForm.cs
   Single = 0
   Relay = 1
 
 
-class FractionType(Enum):
+class FractionType(IntEnum):
   # References:
   # SPORTident 9e291aa \FractionType.cs
   None_ = 0
@@ -125,20 +132,20 @@ class FractionType(Enum):
   One256Th = 256
 
 
-class HalfDay(Enum):
+class HalfDay(IntEnum):
   # References:
   # PCPROG5 (pp. 17, 19)
   am = 0
   pm = 1
 
 
-class MSMode(Enum):
+class MSMode(IntEnum):
   # TODO: Source.
   Master = 77
   Slave = 83
 
 
-class OperatingMode(Enum):
+class OperatingMode(IntEnum):
   # References:
   # SPORTident 9e291aa \OperatingMode.cs
   Unknown = 0
@@ -163,7 +170,7 @@ class OperatingMode(Enum):
   BcLineSlave2 = 31
 
 
-class StampSource(Enum):
+class StampSource(IntEnum):
   # References:
   # SPORTident 9e291aa \StampSource.cs
   Readout = 0
@@ -172,4 +179,4 @@ class StampSource(Enum):
   RadioReadout = 3
 
 
-del Enum
+del IntEnum

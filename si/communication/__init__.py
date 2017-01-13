@@ -1,4 +1,4 @@
-from enum import Enum
+from enum import IntEnum
 
 __all__ = [
     'datapart',
@@ -7,10 +7,9 @@ __all__ = [
 from . import datapart
 
 
-class ProductFamily(Enum):
+class ProductFamily(IntEnum):
   # References:
   # SPORTident.Communication 9e291aa \ProductFamily.cs
-  _Obsolete = NotImplemented
   NotSet = 0
   SimSrr = 33
   Bs8SiMaster = 136
@@ -27,10 +26,9 @@ class ProductFamily(Enum):
   SiPoint = 241
 
 
-class ProductType(Enum):
+class ProductType(IntEnum):
   # References:
   # SPORTident.Communication 9e291aa \ProductType.cs
-  _Obsolete = NotImplemented
   NotSet = 0
   SimSrr = 33
   Bs8SiMaster = 33160
@@ -52,7 +50,7 @@ class ProductType(Enum):
   SiPointSportident = 37617
 
 
-class SimSrrFrequencyChannels(Enum):
+class SimSrrFrequencyChannels(IntEnum):
   # References:
   # SPORTident.Communication 9e291aa \SimSrrFrequencyChannels.cs
   NotSet = -1
@@ -62,4 +60,4 @@ class SimSrrFrequencyChannels(Enum):
   Green = 3
 
 
-del Enum
+del IntEnum
