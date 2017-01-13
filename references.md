@@ -1,6 +1,7 @@
 References
 ==========
 
+
 ## Decompiled [SportIdent]&#8203; [Config+] DLLs
 
 * _url_: <http://github.com/tajfutas/si-configplus-decompiled>
@@ -34,13 +35,23 @@ References
 * _name_: SPORTident.Communication.Communication
 * _url_: <https://github.com/tajfutas/si-configplus-decompiled/blob/9e2e1aa3415ec82fcaf59e17f93521ca76c988ca/SPORTident.Communication.dll/SPORTident.Communication/Communication.cs>
 
+
 ## PCPROG5
 
 * _name_: PC-Programmers Guide
 * _version_: Version 5, Ver 1.1 (2012-07-03)
+* _author_: SPORTident GmbH Arnstadt, Germany
 * _filename_: pcprog5.pdf
 * _url_: <http://www.sportident.com/media/kunena/attachments/51/pcpro5_2013-05-16.zip>
 
+
+## sireader.py 9535938
+
+* _name_: SportIdent Reader Python package
+* _version_: 1.1.1
+* _author_: Gaudenz Steinlin, Simon Harston
+* _filename_: sireader.py
+* _url_: <http://git.durcheinandertal.ch/?p=sireader.git;a=blob;f=sireader.py;h=46c56c04b7105e5108ec8ecf71502e043b8b83c7;hb=9535938912cca1677274fb4f529647c17cb3d862>
 
 
 
