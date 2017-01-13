@@ -6,6 +6,7 @@ __all__ = [
 
 from . import datapart
 
+
 class ProductFamily(Enum):
   # References:
   # SPORTident.Communication 9e291aa \ProductFamily.cs

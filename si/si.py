@@ -125,6 +125,13 @@ class FractionType(Enum):
   One256Th = 256
 
 
+class HalfDay(Enum):
+  # References:
+  # PCPROG5 (pp. 17, 19)
+  am = 0
+  pm = 1
+
+
 class MSMode(Enum):
   # TODO: Source.
   Master = 77

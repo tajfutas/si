@@ -502,7 +502,7 @@ class SIControlStationMixin:
     if hasattr(T, 'total_seconds'):
       T = int(T.total_seconds())
     assert (2 <= T <= 5759)
-    self.mem[126:128] = struct.ack('>H', T)
+    self.mem[126:128] = struct.pack('>H', T)
 
 
   def trigger_punch(self, card_number, time):
