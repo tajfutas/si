@@ -1,12 +1,11 @@
 import typing
 
-from .__init__ import Protocol
+from . import Protocol
 from .bits import Cmd
-
 
 def get_protocol_from_cmd(
     cmd: typing.Union[Cmd, bytes, int]
-  ) -> 'si.communication.Protocol':
+  ) -> Protocol:
   if hasattr(cmd, 'value'):
     cmd = cmd.value
   elif isinstance(cmd, int):

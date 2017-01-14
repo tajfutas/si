@@ -116,10 +116,10 @@ class HalfDay(bytes):
 
 
 class TD_Parts(typing.NamedTuple):
-    extra_bits: bytes
-    four_week_counter_relative: FourWeekCounterRelative
-    day_of_week: DayOfWeek
-    half_day: HalfDay
+  extra_bits: bytes
+  four_week_counter_relative: FourWeekCounterRelative
+  day_of_week: DayOfWeek
+  half_day: HalfDay
 
 @deco.fixed_size(num_bytes = 1)
 class TD(bytes):

@@ -1,8 +1,5 @@
 from enum import Enum
 
-from . import instruction
-
-
 __all__ = [
     'instruction',
     ]
@@ -433,3 +430,6 @@ class SysAddr(Enum):
   GSM_SIM_ID_3 = b'\xA3'
   GSM_SIM_PIN = b'\xB0'
   GSM_PROVIDER = b'\xB4'
+
+
+from . import instruction

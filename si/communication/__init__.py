@@ -1,8 +1,5 @@
 from enum import IntEnum
 
-from . import bits
-from . import helper
-
 
 __all__ = [
     'bits',
@@ -54,6 +51,7 @@ class ProductType(IntEnum):
 
 
 class Protocol(IntEnum):
+  NotSet = -1
   Legacy = 0
   Extended = 1
 
@@ -69,3 +67,7 @@ class SimSrrFrequencyChannels(IntEnum):
 
 
 del IntEnum
+
+
+from . import bits
+from . import helper
