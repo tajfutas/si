@@ -250,7 +250,7 @@ class ProtoChar(Enum):
 
   # Communication.cs names are prefixed with "C_"
   # ACK is missing from the Communication.cs constants
-  STX = b'\x02',
+  STX = b'\x02'
   """
   Start of text, first byte to be transmitted
 
