@@ -1,5 +1,6 @@
 from enum import IntEnum
 
+# TODO: doscstrings; more info
 
 class AirPlusRadioMode(IntEnum):
   # References:
@@ -30,8 +31,7 @@ class BeaconTimingMode(IntEnum):
 
 class CardFamily(IntEnum):
   # References:
-  # Helper.cs 9e291aa (#L692-L733)
-  # TODO: Split? More source.
+  # Helper.cs 9e291aa (#L692-L816)
   NotSet = 0
   Card5 = 0
   Card_5U = 0

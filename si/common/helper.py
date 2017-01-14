@@ -8,10 +8,9 @@ def get_card_family_from_siid(
   ) -> si.CardFamily:
   """
   Return the si.CardFamily representation for the given SIID
-
-  References:
-  Helper.cs 9e291aa (#L692-L733)
   """
+  # References:
+  # Helper.cs 9e291aa (#L692-L733)
   return si.CardFamily[get_card_type_from_siid(siid).name]
 
 
@@ -20,10 +19,9 @@ def get_card_type_from_siid(
   ) -> si.CardType:
   """
   Return the si.CardFamily representation for the given SIID
-
-  References:
-  Helper.cs 9e291aa (#L735-L816)
   """
+  # References:
+  # Helper.cs 9e291aa (#L735-L816)
   try:
     siid = int(siid)
   except ValueError:

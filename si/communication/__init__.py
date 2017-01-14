@@ -1,10 +1,10 @@
 from enum import IntEnum
 
 __all__ = [
-    'datapart',
+    'bits',
     ]
 
-from . import datapart
+from . import bits
 
 
 class ProductFamily(IntEnum):

@@ -19,11 +19,10 @@ class DayOfWeek(bytes):
   0b101  Friday
   0b110  Saturday
   0b111  Not Set or Invalid
-
-  More info:
-  PCPROG5 (pp. 17, 19)
-  SPORTident 9e291aa \DayOfWeek.cs
   """
+  # References:
+  # PCPROG5 (pp. 17, 19)
+  # SPORTident 9e291aa \DayOfWeek.cs
   @classmethod
   def from_value(cls,
       value: typing.Union[si.DayOfWeek, str, int],
@@ -67,10 +66,9 @@ class FourWeekCounterRelative(bytes):
   # TODO: more explanation
   """
   Four week counter relative stored in two bits.
-
-  More info:
-  PCPROG5 (pp. 17, 19)
   """
+  # References:
+  # PCPROG5 (pp. 17, 19)
   @classmethod
   def from_value(cls, value: int) -> 'cls':
     """
@@ -90,10 +88,9 @@ class HalfDay(bytes):
 
   0b0  AM
   0b1  PM
-
-  More info:
-  PCPROG5 (pp. 17, 19)
   """
+  # References:
+  # PCPROG5 (pp. 17, 19)
   @classmethod
   def from_value(cls,
       value: typing.Union[si.DayOfWeek, str, int],
@@ -131,10 +128,9 @@ class TD(bytes):
   and two extra bits in one byte.
 
   This byte is named as "TD" in the SI sources.
-
-  More info:
-  PCPROG5 (pp. 17, 19)
   """
+  # References:
+  # PCPROG5 (pp. 17, 19)
   @classmethod
   def from_parts(cls, td_parts: TD_Parts) -> 'cls':
     """

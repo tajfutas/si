@@ -63,6 +63,18 @@ References
 * _url_: <http://git.durcheinandertal.ch/?p=sireader.git;a=blob;f=sireader.py;h=46c56c04b7105e5108ec8ecf71502e043b8b83c7;hb=9535938912cca1677274fb4f529647c17cb3d862>
 
 
+## SportIdent Developer Forum
+
+* _url_: <https://www.sportident.com/support/developer-forum.html>
+
+#### Clear SI-card by software
+
+* _author_: Thomas Kühn
+* _description_: E0 instruction
+* _url_: <https://www.sportident.com/support/developer-forum/cards/56-clear-si-card-by-software.html#59>
+
+
+
 
 [SportIdent]: //www.sportident.com
 [Config+]: //www.sportident.com/products/96-software/156-sportident-config-plus.html

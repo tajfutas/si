@@ -1,7 +1,7 @@
 __all__ = [
-    'datapart',
+    'bits',
     'helper',
     ]
 
-from . import datapart
+from . import bits
 from . import helper

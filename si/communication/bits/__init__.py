@@ -3,11 +3,10 @@ from enum import Enum
 
 class ActiveCardCmd(Enum):
   # TODO: more info
-  """
-  Active Card Command Codes
+  "Active Card Command Codes"
+  # References:
+  # Communication.cs 9e291aa (#L117-L125)
 
-  Source Communication.cs 9e291aa (#L117-L125)
-  """
   # Communication.cs names are prefixed with "C_ACTIVECARD_"
   BAT_LOW_THRESHOLD = b'\x06'
   ADDR_BATTERY_DATE = b'\x6F'
@@ -18,11 +17,10 @@ class ActiveCardCmd(Enum):
 
 class Card(Enum):
   # TODO: more info
-  """
-  Card ???
+  "Card ???"
+  # References:
+  # Communication.cs 9e291aa (#L27-L31)
 
-  Source Communication.cs 9e291aa (#L27-L31)
-  """
   # Communication.cs names are prefixed with "CARD_"
   CARD_COMPLETE = b'\xCC'
   CARD_AUTOSEND = b'\xCA'
@@ -30,13 +28,12 @@ class Card(Enum):
 
 
 class Cmd(Enum):
-  """
-  Command Codes
+  "Command Codes"
+  # References:
+  # Communication.cs 9e291aa (#L33-L115; #L127-L143)
+  # sireader.py 9535938 (#L59-L111)
+  # Clear SI-card by software
 
-  Sources:
-  Communication.cs 9e291aa (#L33-L115; #L127-L143)
-  sireader.py 9535938 (#L59-L111)
-  """
   # Communication.cs names are prefixed with "C_"
   # The following commands are known from sireader.py 9535938:
   #   30  SET_CARDNO_OLD <- BC_SET_CARDNO
@@ -183,8 +180,6 @@ class Cmd(Enum):
   Command: 02 E0 00 E0 00 03
   Response: 02 E0 02 (CN) (CRC) 03
   """
-  # https://www.sportident.com/support/developer-forum/cards/
-  # 56-clear-si-card-by-software.html#59
   CARD6_DATA = b'\xE1'
   "Read out SI-card 6 data block"
   WRITE_CARD6_PAGE = b'\xE2'
@@ -232,27 +227,23 @@ class Cmd(Enum):
 
 
 class MsMode(Enum):
-  """
-  MS-Mode
+  "MS-Mode"
+  # References:
+  # PCPROG5 (pp. 6, 8)
+  # Communication.cs 9e291aa (#L145-147)
 
-  Sources:
-  PCPROG5 (pp. 6, 8)
-  Communication.cs 9e291aa (#L145-147)
-  """
   # Communication.cs names are prefixed with "C_CFG_MSMODE_"
   MASTER = b'\x4D'
   SLAVE = b'\x53'
 
 
 class ProtoChar(Enum):
-  """
-  Protocol Characters
+  "Protocol Characters"
+  # References:
+  # Communication.cs 9e291aa (#L149-157)
+  # PCPROG5 (pp. 5-6)
+  # sireader.py 9535938 (#L50-L56)
 
-  Sources:
-  Communication.cs 9e291aa (#L149-157)
-  PCPROG5 (pp. 5-6)
-  sireader.py 9535938 (#L50-L56)
-  """
   # Communication.cs names are prefixed with "C_"
   # ACK is missing from the Communication.cs constants
   STX = b'\x02',
@@ -293,12 +284,10 @@ class ProtoChar(Enum):
   """
 
 class SysAddr(Enum):
-  """
-  System Addresses
+  "System Addresses"
+  # References:
+  # Communication.cs 9e291aa (#L159-180)
 
-  Sources:
-  Communication.cs 9e291aa (#L159-180)
-  """
   # Communication.cs names are prefixed with "SYSADR_"
   BN3 = b'\x00'
   BN2 = b'\x01'

@@ -15,11 +15,10 @@ class Crc(bytes):
     Create a Crc instance calculated for the given bytes
 
     Given bytes must include command byte and length byte
-
-    Sources:
-    PCPROG5 (p. 5)
-    Helper.cs 9e291aa (#L587-L648)
     """
+    # References:
+    # PCPROG5 (p. 5)
+    # Helper.cs 9e291aa (#L587-L648)
     if len(bytes_) < 2:
       num = 0
     else:
