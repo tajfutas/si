@@ -1,10 +1,13 @@
 from enum import IntEnum
 
+from . import bits
+from . import helper
+
+
 __all__ = [
     'bits',
+    'helper',
     ]
-
-from . import bits
 
 
 class ProductFamily(IntEnum):
@@ -48,6 +51,11 @@ class ProductType(IntEnum):
   SiGsmSrr = 7069
   SiPointGolf = 37105
   SiPointSportident = 37617
+
+
+class Protocol(IntEnum):
+  Legacy = 0
+  Extended = 1
 
 
 class SimSrrFrequencyChannels(IntEnum):

@@ -1,5 +1,12 @@
 from enum import Enum
 
+from . import instruction
+
+
+__all__ = [
+    'instruction',
+    ]
+
 
 class ActiveCardCmd(Enum):
   # TODO: more info

@@ -24,8 +24,8 @@ class DayOfWeek(bytes):
   # PCPROG5 (pp. 17, 19)
   # SPORTident 9e291aa \DayOfWeek.cs
   @classmethod
-  def from_value(cls,
-      value: typing.Union[si.DayOfWeek, str, int],
+  def from_val(cls,
+      val: typing.Union[si.DayOfWeek, str, int],
     ) -> 'cls':
     """
     Create a DayOfWeek instance from the given value
@@ -35,12 +35,12 @@ class DayOfWeek(bytes):
     matching the SportIdent day of week standard
     (Sunday == 0, Monday == 1, ..., Saturday == 6).
     """
-    if hasattr(value, 'value'):
-      return cls([value.value])
-    elif isinstance(value, str):
-      return cls([si.DayOfWeek[value.title()].value])
+    if hasattr(val, 'value'):
+      return cls([val.value])
+    elif isinstance(val, str):
+      return cls([si.DayOfWeek[val.title()].value])
     else:
-      return cls([value])
+      return cls([val])
 
   def isoweekday(self) -> int:
     """"
@@ -56,7 +56,7 @@ class DayOfWeek(bytes):
     else:
       return (int_value if 0 < int_value else 7)
 
-  def value(self) -> si.DayOfWeek:
+  def val(self) -> si.DayOfWeek:
     "Return the corresponding si.DayOfWeek enumeration"
     return si.DayOfWeek(int.from_bytes(self, 'big'))
 
@@ -70,14 +70,14 @@ class FourWeekCounterRelative(bytes):
   # References:
   # PCPROG5 (pp. 17, 19)
   @classmethod
-  def from_value(cls, value: int) -> 'cls':
+  def from_val(cls, val: int) -> 'cls':
     """
     Create a FourWeekCounterRelative instance from the given
     integer
     """
-    return cls([value])
+    return cls([val])
 
-  def value(self) -> int:
+  def val(self) -> int:
     "Return the four week counter relative integer value"
     return int.from_bytes(self, 'big')
 
@@ -92,8 +92,8 @@ class HalfDay(bytes):
   # References:
   # PCPROG5 (pp. 17, 19)
   @classmethod
-  def from_value(cls,
-      value: typing.Union[si.DayOfWeek, str, int],
+  def from_val(cls,
+      val: typing.Union[si.DayOfWeek, str, int],
     ) -> 'cls':
     """
     Create a HalfDay instance from the given value
@@ -102,15 +102,15 @@ class HalfDay(bytes):
     period name string ("am", "PM", "a.m.", ...) or an integer
     (0 - am; 1 - pm).
     """
-    if hasattr(value, 'value'):
-      return cls([value.value])
-    elif isinstance(value, str):
-      normvalue = value.lower().replace('.','').replace(' ', '')
-      return cls([si.HalfDay[normvalue].value])
+    if hasattr(val, 'value'):
+      return cls([val.value])
+    elif isinstance(val, str):
+      normval = val.lower().replace('.','').replace(' ', '')
+      return cls([si.HalfDay[normval].value])
     else:
-      return cls([value])
+      return cls([val])
 
-  def value(self) -> si.HalfDay:
+  def val(self) -> si.HalfDay:
     "Return the corresponding si.HalfDay enumeration"
     return si.HalfDay(int.from_bytes(self, 'big'))
 
@@ -158,9 +158,9 @@ class TD(bytes):
     intval = int.from_bytes(self, 'big')
     return TD_Parts(
         bytes([intval >> 6]),
-        FourWeekCounterRelative.from_value(intval >> 4 & 0b11),
-        DayOfWeek.from_value(intval >> 1 & 0b111),
-        HalfDay.from_value(intval & 0b1),
+        FourWeekCounterRelative.from_val(intval >> 4 & 0b11),
+        DayOfWeek.from_val(intval >> 1 & 0b111),
+        HalfDay.from_val(intval & 0b1),
       )
 
 
