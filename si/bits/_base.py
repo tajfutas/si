@@ -47,7 +47,7 @@ class Bits(BaseBytes):
         if spaces and i + 1 < len(self):
           yield ' '
     if hasattr(self, '_bits'):
-      return ''.join(char_gen(False))[-self.num_bits:]
+      return ''.join(char_gen(False))[-self._bits:]
     else:
       return ''.join(char_gen(True))
 
@@ -78,4 +78,7 @@ class Bits(BaseBytes):
       else:
         if bit_vals:
           yield sum(bit_vals)
+    if hasattr(cls, '_bits') and len(s) != cls._bits:
+      efs = 'expected a string of {} characters instead of: {}'
+      raise ValueError(efs.format(cls._bits, len(s)))
     return cls(x for x in reversed(list(reversed_intgen())))
