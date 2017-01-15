@@ -1,9 +1,15 @@
 __all__ = [
-    'common',
-    'communication'
+    'bits',
+    'protocol',
+    'siid',
+    'srr',
+    'station',
     ]
 
 
 from .si import *
-from . import common
-from . import communication
+from . import bits
+from . import protocol
+from . import siid
+from . import srr
+from . import station

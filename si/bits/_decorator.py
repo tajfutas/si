@@ -10,6 +10,7 @@ The class decorators in this module are used to avoid deep
 inheritance and code repetition.
 """
 
+import enum
 import functools
 import math
 import typing
@@ -20,7 +21,7 @@ def fixed_size(
     endian: typing.Union['big', 'little'] = 'big'
   ) -> 'decorator':
   """
-  Checks datapart size for match with the given fixed size
+  Check size for match with the given parameters
 
   Raises ValueError if size does not match.
 
@@ -50,5 +51,28 @@ def fixed_size(
         raise OverflowError(efs.format(cls.__name__,
             set_mask, intval))
     cls.__init__ = new_init
+    return cls
+  return wrapped_decorator
+
+
+def enum_defined(
+    enumeration: enum.Enum,
+  ) -> 'decorator':
+  """
+  Check value for enumeration membership
+
+  Adds the matching enumeration as .enum property
+  """
+
+  def wrapped_decorator(cls):
+    original_init = cls.__init__
+    @functools.wraps(cls.__init__)
+    def new_init(self, *args, **kwgs):
+      original_init(self, *args[1:], **kwgs)
+      self._enum = enumeration(self)
+    cls.__init__ = new_init
+    cls.enum = property(lambda self: self._enum,
+        doc = "Corresponding {} enumeration".format(
+            enumeration.__name__))
     return cls
   return wrapped_decorator

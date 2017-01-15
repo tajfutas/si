@@ -1,10 +1,12 @@
-import struct
+import struct as _struct
 
-import si._datapart_decorators as deco
+from . import _base
+from . import _decorator
 
 
-@deco.fixed_size(num_bytes = 2)
-class Crc(bytes):
+@_decorator.fixed_size(num_bytes = 2)
+class CrcBytes(_base.Bytes):
+  "16bit CRC checksum bytes"
 
   CRC_POLY = 0x8005
   CRC_BITF = 0x8000
@@ -12,7 +14,7 @@ class Crc(bytes):
   @classmethod
   def for_bytes(cls, bytes_: bytes) -> 'cls':
     """
-    Create a Crc instance calculated for the given bytes
+    Create an instance calculated for the given bytes
 
     Given bytes must include command byte and length byte
     """
@@ -44,7 +46,7 @@ class Crc(bytes):
               num = (num ^ cls.CRC_POLY) & 65535
             num2 += num2 & 65535
           i += 1
-    return cls(struct.pack('>H', num))
+    return cls(_struct.pack('>H', num))
 
   def check_bytes(self, bytes_: bytes) -> bool:
     """
@@ -57,4 +59,5 @@ class Crc(bytes):
     return (self.__class__.for_bytes(bytes_) == self)
 
 
-del deco
+del _base
+del _decorator

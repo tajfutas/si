@@ -1,12 +1,6 @@
 from enum import IntEnum
 
 
-__all__ = [
-    'bits',
-    'helper',
-    ]
-
-
 class ProductFamily(IntEnum):
   # References:
   # SPORTident.Communication 9e291aa \ProductFamily.cs
@@ -50,24 +44,4 @@ class ProductType(IntEnum):
   SiPointSportident = 37617
 
 
-class Protocol(IntEnum):
-  NotSet = -1
-  Legacy = 0
-  Extended = 1
-
-
-class SimSrrFrequencyChannels(IntEnum):
-  # References:
-  # SPORTident.Communication 9e291aa \SimSrrFrequencyChannels.cs
-  NotSet = -1
-  Red = 0
-  Blue = 1
-  Yellow = 2
-  Green = 3
-
-
 del IntEnum
-
-
-from . import bits
-from . import helper

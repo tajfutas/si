@@ -3,10 +3,10 @@ import typing
 
 
 import si
-import si._datapart_decorators as deco
+from . import _decorator
 
 
-@deco.fixed_size(num_bits = 3)
+@_decorator.fixed_size(num_bits = 3)
 class DayOfWeek(bytes):
   """
   Day of week stored in three bits.
@@ -61,7 +61,7 @@ class DayOfWeek(bytes):
     return si.DayOfWeek(int.from_bytes(self, 'big'))
 
 
-@deco.fixed_size(num_bits = 2)
+@_decorator.fixed_size(num_bits = 2)
 class FourWeekCounterRelative(bytes):
   # TODO: more explanation
   """
@@ -82,7 +82,7 @@ class FourWeekCounterRelative(bytes):
     return int.from_bytes(self, 'big')
 
 
-@deco.fixed_size(num_bits = 1)
+@_decorator.fixed_size(num_bits = 1)
 class HalfDay(bytes):
   """Half day value in one bit
 
@@ -121,7 +121,7 @@ class TD_Parts(typing.NamedTuple):
   day_of_week: DayOfWeek
   half_day: HalfDay
 
-@deco.fixed_size(num_bytes = 1)
+@_decorator.fixed_size(num_bytes = 1)
 class TD(bytes):
   """
   Four week counter relative, day of week, half day,
@@ -164,4 +164,4 @@ class TD(bytes):
       )
 
 
-del deco
+del _decorator
