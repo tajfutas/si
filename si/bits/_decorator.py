@@ -15,6 +15,8 @@ import functools
 import math
 import typing
 
+from si.helper import classproperty
+
 def fixed_size(
     num_bytes: int = 0,
     num_bits: int = 0,
@@ -51,6 +53,10 @@ def fixed_size(
         raise OverflowError(efs.format(cls.__name__,
             set_mask, intval))
     cls.__init__ = new_init
+    if num_bits > 0:
+      cls._bits = classproperty(
+          lambda cls, total_bits=total_bits: total_bits,
+          doc = 'Number of bits')
     return cls
   return wrapped_decorator
 

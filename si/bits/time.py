@@ -1,13 +1,11 @@
-import collections
 import typing
 
-
-import si
+from si import si as _si
+from . import _base
 from . import _decorator
 
-
 @_decorator.fixed_size(num_bits = 3)
-class DayOfWeek(bytes):
+class DayOfWeekBits(_base.Bits):
   """
   Day of week stored in three bits.
 
@@ -25,7 +23,7 @@ class DayOfWeek(bytes):
   # SPORTident 9e291aa \DayOfWeek.cs
   @classmethod
   def from_val(cls,
-      val: typing.Union[si.DayOfWeek, str, int],
+      val: typing.Union[_si.DayOfWeek, str, int],
     ) -> 'cls':
     """
     Create a DayOfWeek instance from the given value
@@ -38,7 +36,7 @@ class DayOfWeek(bytes):
     if hasattr(val, 'value'):
       return cls([val.value])
     elif isinstance(val, str):
-      return cls([si.DayOfWeek[val.title()].value])
+      return cls([_si.DayOfWeek[val.title()].value])
     else:
       return cls([val])
 
@@ -56,13 +54,13 @@ class DayOfWeek(bytes):
     else:
       return (int_value if 0 < int_value else 7)
 
-  def val(self) -> si.DayOfWeek:
+  def val(self) -> _si.DayOfWeek:
     "Return the corresponding si.DayOfWeek enumeration"
-    return si.DayOfWeek(int.from_bytes(self, 'big'))
+    return _si.DayOfWeek(int.from_bytes(self, 'big'))
 
 
 @_decorator.fixed_size(num_bits = 2)
-class FourWeekCounterRelative(bytes):
+class FourWeekCounterRelativeBits(_base.Bits):
   # TODO: more explanation
   """
   Four week counter relative stored in two bits.
@@ -83,7 +81,7 @@ class FourWeekCounterRelative(bytes):
 
 
 @_decorator.fixed_size(num_bits = 1)
-class HalfDay(bytes):
+class HalfDayBit(_base.Bits):
   """Half day value in one bit
 
   0b0  AM
@@ -93,7 +91,7 @@ class HalfDay(bytes):
   # PCPROG5 (pp. 17, 19)
   @classmethod
   def from_val(cls,
-      val: typing.Union[si.DayOfWeek, str, int],
+      val: typing.Union[_si.DayOfWeek, str, int],
     ) -> 'cls':
     """
     Create a HalfDay instance from the given value
@@ -106,23 +104,23 @@ class HalfDay(bytes):
       return cls([val.value])
     elif isinstance(val, str):
       normval = val.lower().replace('.','').replace(' ', '')
-      return cls([si.HalfDay[normval].value])
+      return cls([_si.HalfDay[normval].value])
     else:
       return cls([val])
 
-  def val(self) -> si.HalfDay:
+  def val(self) -> _si.HalfDay:
     "Return the corresponding si.HalfDay enumeration"
-    return si.HalfDay(int.from_bytes(self, 'big'))
+    return _si.HalfDay(int.from_bytes(self, 'big'))
 
 
 class TD_Parts(typing.NamedTuple):
   extra_bits: bytes
-  four_week_counter_relative: FourWeekCounterRelative
-  day_of_week: DayOfWeek
-  half_day: HalfDay
+  four_week_counter_relative: FourWeekCounterRelativeBits
+  day_of_week: DayOfWeekBits
+  half_day: HalfDayBit
 
 @_decorator.fixed_size(num_bytes = 1)
-class TD(bytes):
+class TDBytes(bytes):
   """
   Four week counter relative, day of week, half day,
   and two extra bits in one byte.
@@ -164,4 +162,7 @@ class TD(bytes):
       )
 
 
+del typing
+
+del _base
 del _decorator

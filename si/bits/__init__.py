@@ -15,4 +15,4 @@ from . import crc
 #from . import instruction
 from . import protocol
 from . import station
-#from . import time
+from . import time
