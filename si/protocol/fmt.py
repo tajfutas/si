@@ -157,7 +157,8 @@ Ctrl = 'Ctrl' / Enum(Bytes(1),
 
 # Main constructs
 ################################################################
-
+#InstructionParam = 'InstructionParam' / Switch (
+#  )
 
 Instruction = 'Instruction' / Struct(
   'ff' / OptionalConst(b'\xFF'),
@@ -173,6 +174,7 @@ Instruction = 'Instruction' / Struct(
         lambda ctx: (ctx.cmd >= b'\x80' and ctx.cmd != b'\xC4'),
         Struct(
           'len' / Rebuild(Byte, len_(this.data)),
+          Probe(),
           Embedded(RawCopy(Bytes(this.len))),
           'crc' / Checksum(Bytes(2), lambda data: crc529(data),
               lambda ctx: (
