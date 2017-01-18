@@ -63,8 +63,10 @@ class Delimited(Tunnel):
   """
   Delimits or undelimits the underlying stream
 
-  When parsing, entire stream is consumed. When building, puts
-  compressed bytes without marking the end.
+  When parsing, stream is consumed until end or undelimited byte
+  which is then excuded from the construct and is delegated to
+  the next one. When building, puts compressed bytes without
+  marking the end.
 
   .. seealso:: This construct should either be used with
   :func:`~construct.core.Prefixed` or on entire stream.
@@ -79,14 +81,35 @@ class Delimited(Tunnel):
       >>> D.parse(_)
       b'Hello\tWorld'
   """
+  class DelimitedError(TunnelError): pass
+  class DelimitedByteError(DelimitedError): pass
+  class UndelimitedByteError(DelimitedError): pass
+
+  def _parse(self, stream, context, path):
+    fallback = stream.tell()
+    data = self._decode(stream.read(), context)
+    if self.exc is None:
+      return self.subcon.parse(data, context)
+    elif self.exc.__class__ == self.DelimitedByteError:
+      stream.seek(fallback)
+      raise self.exc
+    elif self.exc.__class__ == self.UndelimitedByteError:
+      stream.seek(fallback + len(data))
+      return self.subcon.parse(data, context)
+    else:
+      stream.seek(fallback)
+      raise self.exc
+
   def _decode(self, data, context):
+    self.exc = None
     def subgenerator():
       delimited = context.setdefault('_delimited', False)
       for b in data:
         if b > 0x1F:
           if delimited:
             errfs = 'attempt to delimit: 0x{:0>2X}'
-            raise TunnelError(errfs.format(b))
+            self.exc = self.DelimitedByteError(errfs.format(b))
+            break
           else:
             yield b
         else:
@@ -97,35 +120,15 @@ class Delimited(Tunnel):
             delimited = context['_delimited'] = True
           else:
             errfs = 'not preceded by DLE: 0x{:0>2X}'
-            raise TunnelError(errfs.format(b))
+            self.exc = self.UndelimitedByteError(
+                errfs.format(b))
+            break
     return bytes(b for b in subgenerator())
 
   def _encode(self, data, context):
     return b''.join(
         (b'\x10' if b <= 0x1F else b'') + data[i:i+1]
         for i, b in enumerate(data))
-
-
-class FixedLeft(Subconstruct):
-  """
-  Keep and pass fixed number of bytes at the end of stream for
-  subsequent constructs and parses the subcon on without those
-  bytes.
-
-  :param num_bytes: the number of bytes at the end of the stream
-    which are passed
-  """
-  __slots__ = ["num_bytes"]
-  def __init__(self, num_bytes: int, subcon):
-    super(FixedLeft, self).__init__(subcon)
-    self.num_bytes = num_bytes
-  def _parse(self, stream, context, path):
-    fallback = stream.tell()
-    bytes_ = stream.read()
-    subcon_data_len = len(bytes_) - self.num_bytes
-    subcon_data = bytes_[:subcon_data_len]
-    stream.seek(fallback + subcon_data_len)
-    return self.subcon.parse(subcon_data, context)
 
 
 def OptionalConst(bytes_):
@@ -179,7 +182,7 @@ Instruction = 'Instruction' / Struct(
               ),
           ),
         ),
-        FixedLeft(1, Delimited(RawCopy(GreedyBytes))),
+        Delimited(RawCopy(GreedyBytes)),
       )),
       'etx' / Const(b'\x03'),
     )),
