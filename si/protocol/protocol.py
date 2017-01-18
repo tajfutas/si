@@ -279,6 +279,7 @@ class ProtoCharByte(_base.Bytes):
   "Protocol character byte"
   # References: see ProtoChar references
 
+
 del Enum
 
 del _base

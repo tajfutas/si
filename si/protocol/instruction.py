@@ -3,11 +3,9 @@ import types
 import typing
 
 
-from si.common.bits.crc import Crc
-from si.helper import classproperty
-from .. import Protocol
-from ..helper import get_protocol_from_cmd
-from . import Cmd, ProtoChar
+from ..helper import classproperty
+from . import Cmd, Protocol, ProtoChar
+from .crc import CrcBytes
 
 
 class InstructionPart(Enum):
@@ -26,7 +24,7 @@ class InstructionParts(typing.NamedTuple):
   CMD: typing.Union[bytes, bytearray]
   LEN: typing.Union[bytes, bytearray]
   DATA: typing.Union[bytes, bytearray]
-  CRC: typing.Union[Crc, bytes, bytearray]
+  CRC: typing.Union[CrcBytes, bytes, bytearray]
   ETX: typing.Union[bytes, bytearray]
 
 
@@ -58,7 +56,7 @@ class Instruction(bytes):
         raise ValueError('not enough bytes')
     self._parts = _parts
     if check_crc:
-      # TODO: document that Crc instance expected
+      # TODO: document that CrcBytes instance expected
       check_result = self._parts.CRC.check_bytes(
           b''.join(self._parts[2:5]))
       if not check_result:
@@ -78,7 +76,7 @@ class Instruction(bytes):
     """
     Return si.communication.Protocol based on the command byte
     """
-    return get_protocol_from_cmd(self._parts.CMD[0])
+    return self._parts.CMD[0].protocol
 
 
 class Command(Instruction):
@@ -103,13 +101,13 @@ class InstructionSorter:
     if data:
       self.send(data)
 
-  def __getitem__(self, instrutionpart):
-    if hasattr(instrutionpart, 'name'):
-      instrutionpart = instrutionpart.name
+  def __getitem__(self, instructionpart):
+    if hasattr(instructionpart, 'name'):
+      instructionpart = instructionpart.name
     try:
-      return getattr(self._parts, instrutionpart)
+      return getattr(self._parts, instructionpart)
     except AttributeError:
-      raise KeyError(instrutionpart) from None
+      raise KeyError(instructionpart) from None
 
   @property
   def buffer(self):
@@ -230,7 +228,7 @@ class InstructionSorter:
           'state: {:0>2X}').format(b[0]))
     self[InstructionPart.ETX].extend(b)
     self._extra_buffer.extend(bytes_[1:])
-    parts = InstructionParts(*((bytes(p) if i != 5 else Crc(p))
+    parts = InstructionParts(*((bytes(p) if i != 5 else CrcBytes(p))
         for i, p in enumerate(self._parts)))
     extra_buffer = bytes(self._extra_buffer)
     self.reset()

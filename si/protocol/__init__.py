@@ -12,6 +12,6 @@ __all__ = [
 from .protocol import *
 from . import card
 from . import crc
-#from . import instruction
+from . import instruction
 from . import station
 from . import time
