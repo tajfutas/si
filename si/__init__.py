@@ -8,7 +8,6 @@ __all__ = [
 
 
 from .si import *
-from . import bits
 from . import protocol
 from . import siid
 from . import srr

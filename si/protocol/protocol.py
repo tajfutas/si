@@ -1,10 +1,14 @@
 from enum import Enum
 
 
-from si.protocol import Protocol as _Protocol
-
 from . import _base
 from . import _decorator
+
+
+class Protocol(Enum):
+  NotSet = -1
+  Legacy = 0
+  Extended = 1
 
 
 class Cmd(Enum):
@@ -261,11 +265,11 @@ class CmdByte(_base.Bytes):
   "Command code byte"
   # References: see Cmd references
   def __init__(self):
-    self._protocol = _Protocol(self >= b'\x80'
+    self._protocol = Protocol(self >= b'\x80'
         and self != b'\xc4')
 
   @property
-  def protocol(self) -> _Protocol:
+  def protocol(self) -> Protocol:
     "Corresponding si.protocol.Protocol enumeration"
     return self._protocol
 

@@ -13,6 +13,8 @@ class MsMode(Enum):
   # Communication.cs names are prefixed with "C_CFG_MSMODE_"
   Master = b'\x4D'
   Slave = b'\x53'
+  Direct = b'\x4D'
+  Remote = b'\x53'
 
 
 class SysAddr(Enum):
