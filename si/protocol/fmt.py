@@ -7,40 +7,58 @@ import struct
 from construct import *
 from construct.lib import *
 
-# Custom Exceptions
+# Custom exceptions
 ################################################################
 class TunnelError(ConstructError):
   pass
 
 
-# Custom Constructs
+# Helper functions
 ################################################################
-class FixedLeft(Subconstruct):
+def crc529(bytes_: bytes) -> bytes:
   """
-  Keep and pass fixed number of bytes at the end of stream for
-  subsequent constructs and parses the subcon on without those
-  bytes.
+  Create an instance calculated for the given bytes
 
-  :param num_bytes: the number of bytes at the end of the stream
-    which are passed
+  Given bytes must include command byte and length byte
   """
-  __slots__ = ["num_bytes"]
-  def __init__(self, num_bytes, subcon):
-    super(FixedLeft, self).__init__(subcon)
-    self.num_bytes = num_bytes
-  def _parse(self, stream, context, path):
-    fallback = stream.tell()
-    bytes_ = stream.read()
-    subcon_data_len = len(bytes_) - self.num_bytes
-    subcon_data = bytes_[:subcon_data_len]
-    stream.seek(fallback + subcon_data_len)
-    return self.subcon.parse(subcon_data, context)
+  # References:
+  # PCPROG5 (p. 5)
+  # Helper.cs 9e291aa (#L587-L648)
+
+  CRC_POLY = 0x8005
+  CRC_BITF = 0x8000
+
+  if len(bytes_) < 2:
+    num = 0
+  else:
+    num = 256 * bytes_[0] + bytes_[1]
+    if len(bytes_) > 2:
+      i = 3
+      while i <= len(bytes_) + 2:
+        if i < len(bytes_):
+          num2 = 256 * bytes_[i - 1] + bytes_[i]
+          i += 1
+        else:
+          if i == len(bytes_):
+            num2 = 256 * bytes_[i - 1]
+          else:
+            num2 = 0
+          i += 2
+        for j in range(0, 16):
+          test = num & CRC_BITF
+          num = num + num & 65535
+          if num2 & CRC_BITF:
+            num = num + 1 & 65535
+          if test:
+            num = (num ^ CRC_POLY) & 65535
+          num2 += num2 & 65535
+        i += 1
+  # return struct.pack('>H', num) ; return Int16ub.build(num)
+  return bytes(divmod(num, 256))
 
 
-# Custom Tunnels
+# Custom constructs
 ################################################################
-
-
 class Delimited(Tunnel):
   """
   Delimits or undelimits the underlying stream
@@ -88,8 +106,27 @@ class Delimited(Tunnel):
         for i, b in enumerate(data))
 
 
-# Custom constructs
-################################################################
+class FixedLeft(Subconstruct):
+  """
+  Keep and pass fixed number of bytes at the end of stream for
+  subsequent constructs and parses the subcon on without those
+  bytes.
+
+  :param num_bytes: the number of bytes at the end of the stream
+    which are passed
+  """
+  __slots__ = ["num_bytes"]
+  def __init__(self, num_bytes: int, subcon):
+    super(FixedLeft, self).__init__(subcon)
+    self.num_bytes = num_bytes
+  def _parse(self, stream, context, path):
+    fallback = stream.tell()
+    bytes_ = stream.read()
+    subcon_data_len = len(bytes_) - self.num_bytes
+    subcon_data = bytes_[:subcon_data_len]
+    stream.seek(fallback + subcon_data_len)
+    return self.subcon.parse(subcon_data, context)
+
 
 def OptionalConst(bytes_):
   """
@@ -106,16 +143,26 @@ def OptionalConst(bytes_):
           encoder = lambda obj,ctx: ([bytes_] if obj else []))
 
 
+# SI constructs
+################################################################
+Ctrl = 'Ctrl' / Enum(Bytes(1),
+    STX = b'\x02',
+    ACK = b'\x06',
+    NAK = b'\x15',
+)
+
+
 # Main constructs
 ################################################################
 
+
 Instruction = 'Instruction' / Struct(
   'ff' / OptionalConst(b'\xFF'),
-  'ctrl' / OneOf(Bytes(1), b'\x02\x06\x15'),
+  'ctrl' / Ctrl,
   Embedded(
     # https://github.com/construct/construct/issues/296
     IfThenElse(
-    this.ctrl == b'\x02',
+    lambda ctx: ctx.ctrl in ('STX', b'\x02'),
     Embedded(Struct(
       'extra_stx' / OptionalConst(b'\x02'),
       'cmd' / Bytes(1),
@@ -142,49 +189,7 @@ Instruction = 'Instruction' / Struct(
 )
 
 
-# Helper functions
-################################################################
 
-def crc529(bytes_: bytes) -> bytes:
-  """
-  Create an instance calculated for the given bytes
-
-  Given bytes must include command byte and length byte
-  """
-  # References:
-  # PCPROG5 (p. 5)
-  # Helper.cs 9e291aa (#L587-L648)
-
-  CRC_POLY = 0x8005
-  CRC_BITF = 0x8000
-
-  if len(bytes_) < 2:
-    num = 0
-  else:
-    num = 256 * bytes_[0] + bytes_[1]
-    if len(bytes_) > 2:
-      i = 3
-      while i <= len(bytes_) + 2:
-        if i < len(bytes_):
-          num2 = 256 * bytes_[i - 1] + bytes_[i]
-          i += 1
-        else:
-          if i == len(bytes_):
-            num2 = 256 * bytes_[i - 1]
-          else:
-            num2 = 0
-          i += 2
-        for j in range(0, 16):
-          test = num & CRC_BITF
-          num = num + num & 65535
-          if num2 & CRC_BITF:
-            num = num + 1 & 65535
-          if test:
-            num = (num ^ CRC_POLY) & 65535
-          num2 += num2 & 65535
-        i += 1
-  # return struct.pack('>H', num) ; return Int16ub.build(num)
-  return bytes(divmod(num, 256))
 
 
 
