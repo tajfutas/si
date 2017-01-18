@@ -7,6 +7,86 @@ import struct
 from construct import *
 from construct.lib import *
 
+# Custom Exceptions
+################################################################
+class TunnelError(ConstructError):
+  pass
+
+
+# Custom Constructs
+################################################################
+class FixedLeft(Subconstruct):
+  """
+  Keep and pass fixed number of bytes at the end of stream for
+  subsequent constructs and parses the subcon on without those
+  bytes.
+
+  :param num_bytes: the number of bytes at the end of the stream
+    which are passed
+  """
+  __slots__ = ["num_bytes"]
+  def __init__(self, num_bytes, subcon):
+    super(FixedLeft, self).__init__(subcon)
+    self.num_bytes = num_bytes
+  def _parse(self, stream, context, path):
+    fallback = stream.tell()
+    bytes_ = stream.read()
+    subcon_data_len = len(bytes_) - self.num_bytes
+    subcon_data = bytes_[:subcon_data_len]
+    stream.seek(fallback + subcon_data_len)
+    return self.subcon.parse(subcon_data, context)
+
+
+# Custom Tunnels
+################################################################
+
+
+class Delimited(Tunnel):
+  """
+  Delimits or undelimits the underlying stream
+
+  When parsing, entire stream is consumed. When building, puts
+  compressed bytes without marking the end.
+
+  .. seealso:: This construct should either be used with
+  :func:`~construct.core.Prefixed` or on entire stream.
+
+  :param subcon: the subcon used for storing the value
+
+  Example::
+
+      >>> D = Delimited(GreedyBytes)
+      >>> D.build(b'Hello\tWorld')
+      b'Hello\x10\tWorld'
+      >>> D.parse(_)
+      b'Hello\tWorld'
+  """
+  def _decode(self, data, context):
+    def subgenerator():
+      delimited = context.setdefault('_delimited', False)
+      for b in data:
+        if b > 0x1F:
+          if delimited:
+            errfs = 'attempt to delimit: 0x{:0>2X}'
+            raise TunnelError(errfs.format(b))
+          else:
+            yield b
+        else:
+          if delimited:
+            yield b
+            delimited = context['_delimited'] = False
+          elif b == 0x10:
+            delimited = context['_delimited'] = True
+          else:
+            errfs = 'not preceded by DLE: 0x{:0>2X}'
+            raise TunnelError(errfs.format(b))
+    return bytes(b for b in subgenerator())
+
+  def _encode(self, data, context):
+    return b''.join(
+        (b'\x10' if b <= 0x1F else b'') + data[i:i+1]
+        for i, b in enumerate(data))
+
 
 # Custom constructs
 ################################################################
@@ -40,7 +120,7 @@ Instruction = 'Instruction' / Struct(
       'extra_stx' / OptionalConst(b'\x02'),
       'cmd' / Bytes(1),
       Embedded(IfThenElse(
-        this.cmd >= b'\x80' and this.cmd != b'\xC4',
+        lambda ctx: (ctx.cmd >= b'\x80' and ctx.cmd != b'\xC4'),
         Struct(
           'len' / Rebuild(Byte, len_(this.data)),
           Embedded(RawCopy(Bytes(this.len))),
@@ -52,7 +132,7 @@ Instruction = 'Instruction' / Struct(
               ),
           ),
         ),
-        Struct(), # TODO
+        FixedLeft(1, Delimited(RawCopy(GreedyBytes))),
       )),
       'etx' / Const(b'\x03'),
     )),
@@ -122,3 +202,9 @@ if __name__ == '__main__':
   demo_parsed2 = Instruction.parse(demo_instr2)
 
   assert demo_instr == demo_instr2
+
+  b_set_ms_mode = b'\x02\xF0\x01\x4D\x6D\x0A\x03'
+  p_set_ms_mode = Instruction.parse(b_set_ms_mode)
+
+  b_set_ms_mode_old = b'\x02\x70\x4D\x03'
+  p_set_ms_mode_old = Instruction.parse(b_set_ms_mode_old)
