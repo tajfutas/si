@@ -4,7 +4,7 @@ from si import si as _si
 from . import _base
 from . import _decorator
 
-@_decorator.fixed_size(num_bits = 3)
+
 class DayOfWeekBits(_base.Bits):
   """
   Day of week stored in three bits.
@@ -21,24 +21,31 @@ class DayOfWeekBits(_base.Bits):
   # References:
   # PCPROG5 (pp. 17, 19)
   # SPORTident 9e291aa \DayOfWeek.cs
+
+  _OCTETS = 0o3
+
+  @classmethod
+  def default(cls) -> 'cls':
+    return cls((0b111,))
+
   @classmethod
   def from_val(cls,
       val: typing.Union[_si.DayOfWeek, str, int],
     ) -> 'cls':
     """
-    Create a DayOfWeek instance from the given value
+    Create a DayOfWeekBits instance from the given value
 
     Value can be a si.DayOfWeek enumeration, a string with the
     english name or abbreviation of the day, or an integer
     matching the SportIdent day of week standard
     (Sunday == 0, Monday == 1, ..., Saturday == 6).
     """
+    v = [val]
     if hasattr(val, 'value'):
-      return cls([val.value])
+      v = [val.value]
     elif isinstance(val, str):
-      return cls([_si.DayOfWeek[val.title()].value])
-    else:
-      return cls([val])
+      v = [_si.DayOfWeek[val.title()].value]
+    return cls(v, _from_val=True)
 
   def isoweekday(self) -> int:
     """"
@@ -59,7 +66,6 @@ class DayOfWeekBits(_base.Bits):
     return _si.DayOfWeek(int.from_bytes(self, 'big'))
 
 
-@_decorator.fixed_size(num_bits = 2)
 class FourWeekCounterRelativeBits(_base.Bits):
   # TODO: more explanation
   """
@@ -67,20 +73,26 @@ class FourWeekCounterRelativeBits(_base.Bits):
   """
   # References:
   # PCPROG5 (pp. 17, 19)
+
+  _OCTETS = 0o2
+
+  @classmethod
+  def default(cls) -> 'cls':
+    return cls((0b00,))
+
   @classmethod
   def from_val(cls, val: int) -> 'cls':
     """
-    Create a FourWeekCounterRelative instance from the given
+    Create a FourWeekCounterRelativeBits instance from the given
     integer
     """
-    return cls([val])
+    return cls([val], _from_val=True)
 
   def val(self) -> int:
     "Return the four week counter relative integer value"
     return int.from_bytes(self, 'big')
 
 
-@_decorator.fixed_size(num_bits = 1)
 class HalfDayBit(_base.Bits):
   """Half day value in one bit
 
@@ -89,24 +101,31 @@ class HalfDayBit(_base.Bits):
   """
   # References:
   # PCPROG5 (pp. 17, 19)
+
+  _OCTETS = 0o1
+
+  @classmethod
+  def default(cls) -> 'cls':
+    return cls((0b0,))
+
   @classmethod
   def from_val(cls,
       val: typing.Union[_si.DayOfWeek, str, int],
     ) -> 'cls':
     """
-    Create a HalfDay instance from the given value
+    Create a HalfDayBit instance from the given value
 
     Value can be a si.HalfDay enumeration, a case insensitive
     period name string ("am", "PM", "a.m.", ...) or an integer
     (0 - am; 1 - pm).
     """
+    v = [val]
     if hasattr(val, 'value'):
-      return cls([val.value])
+      v = [val.value]
     elif isinstance(val, str):
       normval = val.lower().replace('.','').replace(' ', '')
-      return cls([_si.HalfDay[normval].value])
-    else:
-      return cls([val])
+      v = [_si.HalfDay[normval].value]
+    return cls(v, _from_val=True)
 
   def val(self) -> _si.HalfDay:
     "Return the corresponding si.HalfDay enumeration"
@@ -119,47 +138,15 @@ class TD_Parts(typing.NamedTuple):
   day_of_week: DayOfWeekBits
   half_day: HalfDayBit
 
-@_decorator.fixed_size(num_bytes = 1)
-class TDBytes(bytes):
-  """
-  Four week counter relative, day of week, half day,
-  and two extra bits in one byte.
 
-  This byte is named as "TD" in the SI sources.
-  """
-  # References:
-  # PCPROG5 (pp. 17, 19)
-  @classmethod
-  def from_parts(cls, td_parts: TD_Parts) -> 'cls':
-    """
-    Create a TD instance from the given TD_Parts
-
-    TD_Parts should be a 4 bytes tuple (most likely a TD_Parts
-    instance) with the following members:
-    1. extra_bits: bytes from b'\X01' to b'\X03'
-    2. four_week_counter_relative: FourWeekCounterRelative
-    3. day_of_week: DayOfWeek
-    4. half_day: HalfDay
-    """
-    return cls([
-        (td_parts[0][0] << 6)
-        + (td_parts[1][0] << 4)
-        + (td_parts[2][0] << 1)
-        + td_parts[3][0]
-      ])
-
-  def parts(self) -> TD_Parts:
-    """
-    Return the parts of the TD byte in four member TD_Parts
-    tuple
-    """
-    intval = int.from_bytes(self, 'big')
-    return TD_Parts(
-        bytes([intval >> 6]),
-        FourWeekCounterRelative.from_val(intval >> 4 & 0b11),
-        DayOfWeek.from_val(intval >> 1 & 0b111),
-        HalfDay.from_val(intval & 0b1),
-      )
+class TDByte(_base.Container):
+  _OCTETS = 0o10
+  _ITEMS = (
+      ("pad", _base.PadBits(0o2)),
+      ("fourweekcrel", FourWeekCounterRelativeBits),
+      ("dayofweek", DayOfWeekBits),
+      ("halfday", HalfDayBit),
+    )
 
 
 del typing

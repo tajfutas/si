@@ -166,13 +166,14 @@ class SysAddr(Enum):
 class MsModeByte(_base.Bytes):
   "MS-Mode byte"
   # References: see MsMode references
+  _OCTETS = 0o10
 
 
 @_decorator.enum_defined(SysAddr)
 class SysAddrByte(_base.Bytes):
   "System address byte"
   # References: see SysAddr references
-
+  _OCTETS = 0o10
 
 del Enum
 

@@ -4,9 +4,10 @@ from . import _base
 from . import _decorator
 
 
-@_decorator.fixed_size(num_bytes = 2)
 class CrcBytes(_base.Bytes):
   "16bit CRC checksum bytes"
+
+  _OCTETS = 0o20
 
   CRC_POLY = 0x8005
   CRC_BITF = 0x8000
