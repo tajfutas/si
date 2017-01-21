@@ -2,7 +2,9 @@ import collections
 import typing
 
 
-def bytes2str(bytes_:bytes, spaces:bool=True) -> str:
+def bytes2str(bytes_:bytes,
+    space: str = ' ',
+  ) -> str:
   """
   Convert a bytes object to string of hexadecimal values
 
@@ -10,20 +12,57 @@ def bytes2str(bytes_:bytes, spaces:bool=True) -> str:
   '68 65 6C 6C 6F 20 77 6F 72 6C 64'
 
   Spaces between values can be turned of by setting the
-  optional spaces parameter to falsy value.
-  >>> si.protocol._base.bytes2str(b'hello world', spaces=False)
+  space parameter to an empty string.
+
+  >>> si.protocol._base.bytes2str(b'hello world', space='')
   '68656C6C6F20776F726C64'
+
+  Naturally, other space strings are possible.
+
+  >>> si.protocol._base.bytes2str(b'hello world', space='_')
+  '68_65_6C_6C_6F_20_77_6F_72_6C_64'
   """
-  if spaces:
-    s = ' '
-  else:
-    s = ''
-  return s.join('{:0>2X}'.format(b) for b in bytes_)
+  return space.join('{:0>2X}'.format(b) for b in bytes_)
+
+
+def str2bytes(s: str,
+    space: str = ' ',
+  ) -> bytes:
+  """
+  Convert a string of hexadecimal vales to a bytes object
+
+  >>> si.protocol._base.str2bytes(
+  ...     '68 65 6C 6C 6F 20 77 6F 72 6C 64')
+  b'hello world'
+
+  Spaces are ignored between byte values. The space parameter
+  defines the space string (default ' ').
+
+  >>> si.protocol._base.str2bytes(
+  ...     '68_65_6C_6C_6F_20_77_6F_72_6C_64', space='_')
+  b'hello world'
+  """
+  def int_gen():
+    first_c = ''
+    for c in s:
+      if c == space:
+        continue
+      elif not first_c:
+        first_c = c
+        continue
+      else:
+        yield int(first_c + c, 16)
+        first_c = ''
+    else:
+      if first_c:
+        efs = ('last character without pair: {!r}')
+        raise ValueError(efs.format(first_c))
+  return bytes(x for x in int_gen())
 
 
 def bits2str(bytes_: bytes,
     octets: typing.Union[int, None] = None,
-    spaces: typing.Union[bool, None] = None,
+    space: str = None,
     chars: typing.Sequence[str] = 'oX',
     from_left: bool = False,
   ) -> str:
@@ -41,32 +80,32 @@ def bits2str(bytes_: bytes,
 
   If octets modulo 8 is zero then spaces are added between the
   bytes. Otherwise no spaces are added. The default behavior
-  can be overridden with an explicit spaces boolean.
+  can be overridden with an explicit space string.
 
   >>> si.protocol._base.bits2str(b'\x0F\xaa')
   'ooooXXXX XoXoXoXo'
   >>> si.protocol._base.bits2str(b'\x0F\xaa', octets=13)
   'oXXXXXoXoXoXo'
   >>> si.protocol._base.bits2str(b'\x0F\xaa', octets=13,
-  ...     spaces=True)
+  ...     space=' ')
   'oXXXX XoXoXoXo'
 
   If pad bits are in the right side then they can be trimmed
   by setting from_left parameter to True.
 
   >>> si.protocol._base.bits2str(b'\x0F\xaa', octets=13,
-  ...     spaces=True, from_left=True)
-  'ooooXXXX XoXoX'
+  ...     space='_', from_left=True)
+  'ooooXXXX_XoXoX'
   """
   if octets is None:
     octets = 8 * len(bytes_)
-  if spaces is None:
+  if space is None:
     if octets % 8:
-      spaces = False
+      space = ''
     else:
-      spaces = True
+      space = ' '
   from_left = bool(from_left)
-  def char_gen(spaces):
+  def char_gen():
     total_octets_ = 8 * len(bytes_)
     for b, B in enumerate(bytes_):
       for c, C in enumerate('{:0>8b}'.format(B)):
@@ -76,10 +115,10 @@ def bits2str(bytes_: bytes,
           curr_octets = total_octets_ - curr_octets + 1
         if curr_octets <= octets:
           yield chars[int(C)]
-          if spaces and 1 < curr_octets:
+          if 1 < curr_octets:
             if not (curr_octets + sp) % 8:
-              yield ' '
-  return ''.join(char_gen(spaces))
+              yield space
+  return ''.join(char_gen())
 
 
 class BaseBytes(bytes):
@@ -163,30 +202,16 @@ class Bytes(BaseBytes):
     return bytes2str(self)
 
   @classmethod
-  def from_str(cls, s: str) -> 'cls':
+  def from_str(cls, s: str, space: str = ' ') -> 'cls':
     """
     Create an instance from a string
 
     String must contain pairs of hexadecimal characters.
-    Spaces and underscores are ignored.
+
+    See si.protocol._base.str2bytes()
     """
-    def intgen():
-      first_c = ''
-      for c in s:
-        if c in ' _':
-          continue
-        elif not first_c:
-          first_c = c
-          continue
-        else:
-          yield int(first_c + c, 16)
-          first_c = ''
-      else:
-        if first_c:
-          efs = ('expected a pair of hexadecimal characters '
-              'instead of: {!r}')
-          raise ValueError(efs.format(first_c))
-    return cls(x for x in intgen())
+    return cls(str2bytes(s, space=space), _from_val=False)
+
 
   def _check_octets(self) -> typing.Tuple[int, int, int]:
     """
