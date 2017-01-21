@@ -2,7 +2,18 @@ import collections
 import typing
 
 
-def str_bytes(bytes_, spaces:bool=True) -> str:
+def bytes2str(bytes_:bytes, spaces:bool=True) -> str:
+  """
+  Convert a bytes object to string of hexadecimal values
+
+  >>> si.protocol._base.str_bytes(b'hello world')
+  '68 65 6C 6C 6F 20 77 6F 72 6C 64'
+
+  Spaces between values can be turned of by setting the
+  optional spaces parameter to falsy value.
+  >>> si.protocol._base.bytes2str(b'hello world', spaces=False)
+  '68656C6C6F20776F726C64'
+  """
   if spaces:
     s = ' '
   else:
@@ -10,23 +21,74 @@ def str_bytes(bytes_, spaces:bool=True) -> str:
   return s.join('{:0>2X}'.format(b) for b in bytes_)
 
 
-def str_bits(bytes_, octets, spaces: bool=False) -> str:
+def bits2str(bytes_: bytes,
+    octets: typing.Union[int, None] = None,
+    spaces: typing.Union[bool, None] = None,
+    chars: typing.Sequence[str] = 'oX',
+    from_left: bool = False,
+  ) -> str:
+  """
+  Convert a bytes object to string of bit values.
+
+  >>> si.protocol._base.bits2str(b'\x0F')
+  'ooooXXXX'
+
+  Pad bits can be trimmed by setting an explicit octets value.
+  Octets default is the lenght of the bytes in octets.
+
+  >>> si.protocol._base.bits2str(b'\x0F', octets=6)
+  'ooXXXX'
+
+  If octets modulo 8 is zero then spaces are added between the
+  bytes. Otherwise no spaces are added. The default behavior
+  can be overridden with an explicit spaces boolean.
+
+  >>> si.protocol._base.bits2str(b'\x0F\xaa')
+  'ooooXXXX XoXoXoXo'
+  >>> si.protocol._base.bits2str(b'\x0F\xaa', octets=13)
+  'oXXXXXoXoXoXo'
+  >>> si.protocol._base.bits2str(b'\x0F\xaa', octets=13,
+  ...     spaces=True)
+  'oXXXX XoXoXoXo'
+
+  If pad bits are in the right side then they can be trimmed
+  by setting from_left parameter to True.
+
+  >>> si.protocol._base.bits2str(b'\x0F\xaa', octets=13,
+  ...     spaces=True, from_left=True)
+  'ooooXXXX XoXoX'
+  """
+  if octets is None:
+    octets = 8 * len(bytes_)
+  if spaces is None:
+    if octets % 8:
+      spaces = False
+    else:
+      spaces = True
+  from_left = bool(from_left)
   def char_gen(spaces):
-    for i, B in enumerate(bytes_):
-      for c in '{:0>8b}'.format(B):
-        yield ('X' if c == '1' else 'o')
-      if spaces and i + 1 < len(self):
-        yield ' '
-  return ''.join(char_gen(spaces))[-octets:]
+    total_octets_ = 8 * len(bytes_)
+    for b, B in enumerate(bytes_):
+      for c, C in enumerate('{:0>8b}'.format(B)):
+        curr_octets = 8 * b + c + 1
+        sp = from_left - 1
+        if not from_left:
+          curr_octets = total_octets_ - curr_octets + 1
+        if curr_octets <= octets:
+          yield chars[int(C)]
+          if spaces and 1 < curr_octets:
+            if not (curr_octets + sp) % 8:
+              yield ' '
+  return ''.join(char_gen(spaces))
 
 
 class BaseBytes(bytes):
   _OCTETS = NotImplemented
 
   def __new__(cls, arg, *args,
-      _from_val=False, _get_octets=None,
+      _from_val=True, _get_octets=None,
       **kwgs):
-    if not _from_val and hasattr(cls, 'from_val'):
+    if _from_val and hasattr(cls, 'from_val'):
       try:
         return cls.from_val(arg)
       except:
@@ -98,7 +160,7 @@ class Bytes(BaseBytes):
           exp_num_bytes, len(self)))
 
   def __str__(self):
-    return str_bytes(self)
+    return bytes2str(self)
 
   @classmethod
   def from_str(cls, s: str) -> 'cls':
@@ -152,7 +214,7 @@ class Bytes(BaseBytes):
 class Bits(BaseBytes):
 
   def __str__(self):
-    return str_bits(self, self.octets())
+    return bits2str(self, self.octets())
 
   @classmethod
   def from_str(cls, s: str) -> 'cls':
@@ -296,7 +358,11 @@ class Container(Bytes):
       else:
         v = itms.get(item_name)
       if v is None:
-        item_inst = item_cls.default()
+        try:
+          item_inst = item_cls.default()
+        except AttributeError:
+          efs = 'argument ({})  must be defined explicitely: {}'
+          raise TypeError(efs.format(i, item_name)) from None
       else:
         if type(v) == item_cls:
           item_inst = v
@@ -304,7 +370,6 @@ class Container(Bytes):
           item_inst = item_cls(v)
       _items[item_name] = item_inst
     arg = cls.bytes_from_items(_items)
-    print(arg)
     inst = super().__new__(cls, arg)
     inst._items = _items
     return inst
@@ -320,3 +385,8 @@ class Container(Bytes):
 
   def _get_octets(self):
     return sum((i.octets() for i in self.items().values()))
+
+  def val(self):
+    return collections.OrderedDict((name, (item.val()
+        if hasattr(item, 'val') else item))
+        for name, item in self.items().items())
