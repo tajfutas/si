@@ -8,18 +8,18 @@ def bytes2str(bytes_:bytes,
   """
   Convert a bytes object to string of hexadecimal values
 
-  >>> si.protocol._base.str_bytes(b'hello world')
+  >>> bytes2str(b'hello world')
   '68 65 6C 6C 6F 20 77 6F 72 6C 64'
 
   Spaces between values can be turned of by setting the
   space parameter to an empty string.
 
-  >>> si.protocol._base.bytes2str(b'hello world', space='')
+  >>> bytes2str(b'hello world', space='')
   '68656C6C6F20776F726C64'
 
   Naturally, other space strings are possible.
 
-  >>> si.protocol._base.bytes2str(b'hello world', space='_')
+  >>> bytes2str(b'hello world', space='_')
   '68_65_6C_6C_6F_20_77_6F_72_6C_64'
   """
   return space.join('{:0>2X}'.format(b) for b in bytes_)
@@ -69,32 +69,31 @@ def bits2str(bytes_: bytes,
   """
   Convert a bytes object to string of bit values.
 
-  >>> si.protocol._base.bits2str(b'\x0F')
+  >>> bits2str(b'\x0F')
   'ooooXXXX'
 
   Pad bits can be trimmed by setting an explicit octets value.
   Octets default is the lenght of the bytes in octets.
 
-  >>> si.protocol._base.bits2str(b'\x0F', octets=6)
+  >>> bits2str(b'\x0F', octets=6)
   'ooXXXX'
 
   If octets modulo 8 is zero then spaces are added between the
   bytes. Otherwise no spaces are added. The default behavior
   can be overridden with an explicit space string.
 
-  >>> si.protocol._base.bits2str(b'\x0F\xaa')
+  >>> bits2str(b'\x0F\xaa')
   'ooooXXXX XoXoXoXo'
-  >>> si.protocol._base.bits2str(b'\x0F\xaa', octets=13)
+  >>> bits2str(b'\x0F\xaa', octets=13)
   'oXXXXXoXoXoXo'
-  >>> si.protocol._base.bits2str(b'\x0F\xaa', octets=13,
-  ...     space=' ')
+  >>> bits2str(b'\x0F\xaa', octets=13, space=' ')
   'oXXXX XoXoXoXo'
 
   If pad bits are in the right side then they can be trimmed
   by setting from_left parameter to True.
 
-  >>> si.protocol._base.bits2str(b'\x0F\xaa', octets=13,
-  ...     space='_', from_left=True)
+  >>> bits2str(b'\x0F\xaa', octets=13, space='_',
+  ...     from_left=True)
   'ooooXXXX_XoXoX'
   """
   if octets is None:
@@ -104,21 +103,20 @@ def bits2str(bytes_: bytes,
       space = ''
     else:
       space = ' '
-  from_left = bool(from_left)
+  gens = reversed, iter
+  if from_left:
+    gens = iter, reversed
+  def bit_gen():
+    yield from ((B & 2**i) >> i for B in gens[0](bytes_)
+        for i in gens[1](range(8)))
   def char_gen():
-    total_octets_ = 8 * len(bytes_)
-    for b, B in enumerate(bytes_):
-      for c, C in enumerate('{:0>8b}'.format(B)):
-        curr_octets = 8 * b + c + 1
-        sp = from_left - 1
-        if not from_left:
-          curr_octets = total_octets_ - curr_octets + 1
-        if curr_octets <= octets:
-          yield chars[int(C)]
-          if 1 < curr_octets:
-            if not (curr_octets + sp) % 8:
-              yield space
-  return ''.join(char_gen())
+    for i, b in enumerate(bit_gen(), 1):
+      if octets < i:
+        break
+      yield chars[b]
+      if i < octets and not i % 8:
+        yield space
+  return ''.join(gens[0](tuple(char_gen())))
 
 
 class BaseBytes(bytes):
