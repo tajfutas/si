@@ -1,6 +1,7 @@
 import collections
 import typing
 
+from ._helper import bits2str, bytes2str, str2bytes
 
 
 class BaseBytes(bytes):
