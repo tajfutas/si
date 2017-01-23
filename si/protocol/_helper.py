@@ -1,4 +1,5 @@
 import collections
+import io
 import string
 import typing
 
@@ -106,11 +107,70 @@ def bits(bytes_: bytes,
       for i in b_it(range(8)))
 
 
-def hexdigits(stream: typing.io,
+def hexdigits_as_integers(stream: typing.io,
     space: str = ' ',
+    exc_cls: typing.Union[None, typing.Type[Exception]] = None,
   ) -> typing.Iterator[str]:
-  pass
-  # TODO
+  """
+  Yield integers by reading the stream for hexadecimal character
+  pairs
+
+  Spaces are ignored between byte values. The space parameter
+  defines the space string (default ' ').
+
+  >>> s = '68 65 6C 6C6F 2077 6 F 72 6C 64 whatever'
+  >>> stream = io.StringIO(s)
+  >>> gen = hexdigits_as_integers(stream)
+  >>> li = list(gen)
+  [104, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100]
+  >>> bytes(li)
+  b'hello world'
+  >>> stream.read()
+  ' whatever'
+
+  By default the iteration stops at invalid characters without
+  raising an exception. This can be overridden with an explicit
+  exc_cls (exception class) parameter (defalut StopIteration).
+
+  >>> stream.seek(0)
+  0
+  >>> gen = hexdigits_as_integers(stream, exc_cls=ValueError)
+  >>> li = list(gen)
+  Traceback (most recent call last):
+    File "<stdin>", line 1, in <module>
+    File "C:\tajf\si\si\protocol\_helper.py", line 162, in
+        hexdigits_as_integers
+      raise exc_cls(efs.format(c))
+  ValueError: expected a hexdigit: 'w'
+  >>> stream.read()
+  '68 65 6C 6C6F 2077 6F 72 6C 64 whatever'
+  """
+  exc_cls = StopIteration if exc_cls is None else exc_cls
+  c, first_c = None, ''
+  full_fb = fb = stream.tell()
+  while c != '':
+    if not first_c and c != space:
+      fb = stream.tell()
+    c = stream.read(1)
+    if not c:
+      continue
+    if c == space:
+      continue
+    elif c not in string.hexdigits:
+      stream.seek((fb if exc_cls == StopIteration else full_fb))
+      efs = 'expected a hexdigit: {!r}'
+      raise exc_cls(efs.format(c))
+    elif not first_c:
+      first_c = c
+      continue
+    else:
+      yield int(first_c + c, 16)
+      first_c = ''
+  else:
+    if first_c:
+      efs = ('last character without pair: {!r}')
+      stream.seek((fb if exc_cls == StopIteration else full_fb))
+      raise exc_cls(efs.format(first_c))
 
 
 def str2bits(s: str,
@@ -122,38 +182,32 @@ def str2bits(s: str,
   pass
   # TODO
 
-def str2bytes(s: str,
+def str2bytes(s: typing.Union[str, typing.io],
     space: str = ' ',
   ) -> bytes:
   """
   Convert a string of hexadecimal vales to a bytes object
+  or return a bytes object from a stream that has hexadecimal
+  characters in it
 
-  >>> si.protocol._base.str2bytes(
-  ...     '68 65 6C 6C 6F 20 77 6F 72 6C 64')
+  >>> s = '68 65 6C 6C 6F 20 77 6F 72 6C 64'
+  >>> si.protocol._base.str2bytes(s)
   b'hello world'
 
   Spaces are ignored between byte values. The space parameter
   defines the space string (default ' ').
 
-  >>> si.protocol._base.str2bytes(
-  ...     '68_65_6C_6C_6F_20_77_6F_72_6C_64', space='_')
+  >>> s2 = s.replace(' ', '_')
+  >>> s2
+  '68_65_6C_6C_6F_20_77_6F_72_6C_64'
+  >>> si.protocol._base.str2bytes(s2, space='_')
   b'hello world'
   """
-  def int_gen():
-    first_c = ''
-    for c in s:
-      if c == space:
-        continue
-      elif c not in string.hexdigits:
-        raise ValueError() # TODO
-      elif not first_c:
-        first_c = c
-        continue
-      else:
-        yield int(first_c + c, 16)
-        first_c = ''
-    else:
-      if first_c:
-        efs = ('last character without pair: {!r}')
-        raise ValueError(efs.format(first_c))
-  return bytes(x for x in int_gen())
+  if not hasattr(s, 'read'):
+    s = io.StringIO(s)
+    exc_cls = ValueError
+  else:
+    exc_cls = None
+  return bytes(x for x in hexdigits_as_integers(s, space=space,
+      exc_cls=exc_cls))
+
