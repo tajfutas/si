@@ -4,6 +4,30 @@ import string
 import typing
 
 
+def bits(bytes_: bytes,
+    reversed_bytes: bool = False,
+    reversed_bits: bool = False
+  ) -> typing.Iterator[int]:
+  """
+  Yield bits of the given bytes object
+
+  >>> list(bits(b'\x0F\xAA'))
+  [0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0]
+  >>> list(bits(b'\x0F\xAA', reversed_bytes=True))
+  [1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1]
+  >>> list(bits(b'\x0F\xAA', reversed_bits=True))
+  [1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1]
+  >>> list(bits(b'\x0F\xAA', reversed_bytes=True,
+  ...     reversed_bits=True))
+  [0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0]
+
+  """
+  B_it = reversed if reversed_bytes else iter
+  b_it = iter if reversed_bits else reversed
+  yield from ((B & 2**i) >> i for B in B_it(bytes_)
+      for i in b_it(range(8)))
+
+
 def bits2str(bytes_: bytes,
     octets: typing.Union[int, None] = None,
     space: str = None,
@@ -82,31 +106,6 @@ def bytes2str(bytes_:bytes,
   return space.join('{:0>2X}'.format(b) for b in bytes_)
 
 
-
-def bits(bytes_: bytes,
-    reversed_bytes: bool = False,
-    reversed_bits: bool = False
-  ) -> typing.Iterator[int]:
-  """
-  Yield bits of the given bytes object
-
-  >>> list(iterbits(b'\x0F\xAA'))
-  [0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0]
-  >>> list(iterbits(b'\x0F\xAA', reversed_bytes=True))
-  [1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1]
-  >>> list(iterbits(b'\x0F\xAA', reversed_bits=True))
-  [1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1]
-  >>> list(iterbits(b'\x0F\xAA', reversed_bytes=True,
-  ...     reversed_bits=True))
-  [0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0]
-
-  """
-  B_it = reversed if reversed_bytes else iter
-  b_it = iter if reversed_bits else reversed
-  yield from ((B & 2**i) >> i for B in B_it(bytes_)
-      for i in b_it(range(8)))
-
-
 def hexdigits_as_integers(stream: typing.io,
     space: str = ' ',
     exc_cls: typing.Union[None, typing.Type[Exception]] = None,
@@ -114,6 +113,8 @@ def hexdigits_as_integers(stream: typing.io,
   """
   Yield integers by reading the stream for hexadecimal character
   pairs
+
+  Note that the stream must be seekable and tellable.
 
   Spaces are ignored between byte values. The space parameter
   defines the space string (default ' ').
@@ -137,10 +138,7 @@ def hexdigits_as_integers(stream: typing.io,
   >>> gen = hexdigits_as_integers(stream, exc_cls=ValueError)
   >>> li = list(gen)
   Traceback (most recent call last):
-    File "<stdin>", line 1, in <module>
-    File "C:\tajf\si\si\protocol\_helper.py", line 162, in
-        hexdigits_as_integers
-      raise exc_cls(efs.format(c))
+    ...
   ValueError: expected a hexdigit: 'w'
   >>> stream.read()
   '68 65 6C 6C6F 2077 6F 72 6C 64 whatever'
@@ -188,10 +186,15 @@ def str2bytes(s: typing.Union[str, typing.io],
   """
   Convert a string of hexadecimal vales to a bytes object
   or return a bytes object from a stream that has hexadecimal
-  characters in it
+  characters in it.
+
+  When called with a string, ValueError is raised if the string
+  has invalid format. When called with a stream object then it
+  gets consumed until it's format is valid and no exceptions are
+  raised. Note that the stream must be seekable and tellable.
 
   >>> s = '68 65 6C 6C 6F 20 77 6F 72 6C 64'
-  >>> si.protocol._base.str2bytes(s)
+  >>> str2bytes(s)
   b'hello world'
 
   Spaces are ignored between byte values. The space parameter
@@ -200,8 +203,19 @@ def str2bytes(s: typing.Union[str, typing.io],
   >>> s2 = s.replace(' ', '_')
   >>> s2
   '68_65_6C_6C_6F_20_77_6F_72_6C_64'
-  >>> si.protocol._base.str2bytes(s2, space='_')
+  >>> str2bytes(s2, space='_')
   b'hello world'
+
+  >>> s3 = '68 65 6C 6C6F 2077 6 F 72 6C 64 whatever'
+  >>> stream = io.StringIO(s3)
+  >>> str2bytes(stream)
+  b'hello world'
+  >>> stream.read()
+  ' whatever'
+  >>> str2bytes(s3)
+  Traceback (most recent call last):
+    ...
+  ValueError: expected a hexdigit: 'w'
   """
   if not hasattr(s, 'read'):
     s = io.StringIO(s)
