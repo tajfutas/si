@@ -7,13 +7,18 @@ import typing
 BITDIGITS = 'oX'
 
 
-def bitdigits_as_booleans(stream: typing.io,
+def bitdigits_as_booleans(stream: typing.io, *,
+    bitdigits: typing.Union[int, None] = None,
+    # http://bugs.python.org/issue29356
+    octets: typing.Union[int, None, type(...)] = None,
     space: str = ' ',
-    bitdigits: str = BITDIGITS,
-    exc_cls: typing.Union[None, typing.Type[Exception]] = None,
+    strict: bool = True,
   ) -> typing.Iterator[bool]:
   """
   Yield booleans by reading the stream for bit character pairs
+
+  It is recommended to pass an explicit octets value if the
+  length of the data in bits is known beforehand.
 
   Note that the stream must be seekable and tellable.
 
@@ -24,47 +29,76 @@ def bitdigits_as_booleans(stream: typing.io,
   bitdigits parameter (default 'oX'). Note that matching is
   case sensitive.
 
-  >>> s = 'oXXXX XoX hello world'
+  >>> s = 'XoXXX'
   >>> stream = io.StringIO(s)
-  >>> gen = bitdigits_as_booleans(stream)
-  >>> li = list(gen)
-  >>> li
-  [False, True, True, True, True, True, False, True]
-  >>> stream.read()
-  ' hello world'
+  >>> list(bitdigits_as_booleans(stream))
+  [True, False, True, True, True]
 
-  By default the iteration stops at invalid characters without
-  raising an exception. This can be overridden with an explicit
-  exc_cls (exception class) parameter (defalut StopIteration).
+  Strict mode is on by default. This means that
+  * if octets then EOF expected after the required number of
+    bits were read;
+  * if no octets then reading should go without invalid
+    characters until EOF.
 
   >>> stream.seek(0)
   0
-  >>> gen = bitdigits_as_booleans(stream, exc_cls=ValueError)
-  >>> li = list(gen)
+  >>> list(bitdigits_as_booleans(stream, octets=4))
   Traceback (most recent call last):
     ...
-  ValueError: expected a bitdigit (oX): 'h'
+  ValueError: EOF expected
+  >>> list(bitdigits_as_booleans(stream, octets=5))
+  [True, False, True, True, True]
+  >>> s = 'oXXXX XoX Hello World!'
+  >>> stream = io.StringIO(s)
+  >>> list(bitdigits_as_booleans(stream))
+  Traceback (most recent call last):
+    ...
+  ValueError: expected a bitdigit (oX): 'H'
   >>> stream.read()
-  'oXXXX XoX hello world'
-
+  'oXXXX XoX Hello World!'
+  >>> stream.seek(0)
+  0
+  >>> list(bitdigits_as_booleans(stream, strict=False))
+  [False, True, True, True, True, True, False, True]
+  >>> stream.read()
+  ' Hello World!'
   """
-  exc_cls = StopIteration if exc_cls is None else exc_cls
+  bitdigits = bitdigits or BITDIGITS
+  if octets == ...:
+    octets = None
   c = None
   full_fb = fb = stream.tell()
-  while True:
+  while octets is None or -1 < octets:
     if c != space:
       fb = stream.tell()
     c = stream.read(1)
-    if not c:
-      break
     if c == space:
       continue
+    if not c:
+      if octets is not None and 0 < octets:
+        stream.seek(full_fb)
+        raise ValueError('EOF reached unexpectedly')
+      break
+    elif octets is not None and octets == 0:
+      if strict and c:
+        stream.seek(full_fb)
+        raise ValueError('EOF expected')
+      else:
+        stream.seek(fb)
+        break
     elif c not in bitdigits:
-      stream.seek((fb if exc_cls == StopIteration else full_fb))
+      if strict or (octets is not None and 0 < octets):
+        exc_cls = ValueError
+        stream.seek(full_fb)
+      else:
+        exc_cls = StopIteration
+        stream.seek(fb)
       efs = 'expected a bitdigit ({}): {!r}'
       raise exc_cls(efs.format(bitdigits, c))
     else:
       yield bool(int(bitdigits.index(c)))
+      if octets is not None:
+        octets -= 1
 
 
 def bits(bytes_: bytes,
@@ -92,7 +126,7 @@ def bits(bytes_: bytes,
 
 
 def bits2str(bytes_: bytes,
-    octets: typing.Union[int, None] = None,
+    octets: typing.Union[int, None, type(...)] = None,
     space: str = None,
     chars: typing.Sequence[str] = 'oX',
     from_left: bool = False,
@@ -127,7 +161,7 @@ def bits2str(bytes_: bytes,
   ...     from_left=True)
   'ooooXXXX_XoXoX'
   """
-  if octets is None:
+  if octets is None or octets == ...:
     octets = 8 * len(bytes_)
   if space is None:
     if octets % 8:
@@ -169,57 +203,81 @@ def bytes2str(bytes_:bytes,
   return space.join('{:0>2X}'.format(b) for b in bytes_)
 
 
-def hexdigits_as_integers(stream: typing.io,
+def hexdigits_as_integers(stream: typing.io, *,
+    octets: typing.Union[int, None, type(...)] = None,
     space: str = ' ',
-    exc_cls: typing.Union[None, typing.Type[Exception]] = None,
+    strict: bool = True,
   ) -> typing.Iterator[int]:
   """
   Yield integers by reading the stream for hexadecimal character
   pairs
+
+  It is recommended to pass an explicit octets value if the
+  length of the data in bytes is known beforehand. Note that
+  octets = 8 * num_bytes and octets are calculated from the
+  given parameter as octets = octets // 8 * 8.
 
   Note that the stream must be seekable and tellable.
 
   Spaces are ignored between byte values. The space parameter
   defines the space string (default ' ').
 
-  >>> s = '68 65 6C 6C6F 2077 6 F 72 6C 64 whatever'
+  >>> s = '68 65 6C 6C6F 2077 6 F 72 6C 64 '
   >>> stream = io.StringIO(s)
-  >>> gen = hexdigits_as_integers(stream)
-  >>> li = list(gen)
-  >>> li
+  >>> list(hexdigits_as_integers(stream, octets=11*8))
   [104, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100]
-  >>> bytes(li)
-  b'hello world'
-  >>> stream.read()
-  ' whatever'
 
-  By default the iteration stops at invalid characters without
-  raising an exception. This can be overridden with an explicit
-  exc_cls (exception class) parameter (defalut StopIteration).
+  Strict mode is on by default. This means that
+  * if octets then EOF expected after the required number of
+    bytes were read;
+  * if no octets then reading should go without invalid
+    characters until EOF.
 
-  >>> stream.seek(0)
-  0
-  >>> gen = hexdigits_as_integers(stream, exc_cls=ValueError)
-  >>> li = list(gen)
+  >>> s += 'Hello World!'
+  >>> stream = io.StringIO(s)
+  >>> list(hexdigits_as_integers(stream))
   Traceback (most recent call last):
     ...
-  ValueError: expected a hexdigit (0123456789abcdefABCDEF): 'w'
+  ValueError: expected a hexdigit (0123456789abcdefABCDEF): 'H'
   >>> stream.read()
-  '68 65 6C 6C6F 2077 6F 72 6C 64 whatever'
+  '68 65 6C 6C6F 2077 6 F 72 6C 64 Hello World!'
+  >>> stream.seek(0)
+  0
+  >>> list(hexdigits_as_integers(stream, strict=False))
+  [104, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100]
+  >>> stream.read()
+  ' Hello World!'
   """
-  exc_cls = StopIteration if exc_cls is None else exc_cls
   c, first_c = None, ''
   full_fb = fb = stream.tell()
-  while c != '':
+  if octets == ...:
+    octets = None
+  octets = octets if octets is None else octets // 8 * 8
+  while c != '' and (octets is None or -1 < octets):
     if not first_c and c != space:
       fb = stream.tell()
     c = stream.read(1)
-    if not c:
-      continue  # exits the loop without break
     if c == space:
       continue
+    if not c:
+      if octets is not None and 0 < octets:
+        stream.seek(full_fb)
+        raise ValueError('EOF reached unexpectedly')
+      continue  # exits the loop without break
+    elif octets is not None and octets == 0:
+      if strict and c:
+        stream.seek(full_fb)
+        raise ValueError('EOF expected')
+      else:
+        stream.seek(fb)
+        break
     elif c not in string.hexdigits:
-      stream.seek((fb if exc_cls == StopIteration else full_fb))
+      if strict or (octets is not None and 0 < octets):
+        exc_cls = ValueError
+        stream.seek(full_fb)
+      else:
+        exc_cls = StopIteration
+        stream.seek(fb)
       efs = 'expected a hexdigit ({}): {!r}'
       raise exc_cls(efs.format(string.hexdigits, c))
     elif not first_c:
@@ -228,30 +286,83 @@ def hexdigits_as_integers(stream: typing.io,
     else:
       yield int(first_c + c, 16)
       first_c = ''
+      if octets is not None:
+        octets -= 8
   else:
     if first_c:
-      efs = ('last character without pair: {!r}')
-      stream.seek((fb if exc_cls == StopIteration else full_fb))
-      raise exc_cls(efs.format(first_c))
+      efs = 'last character without pair: {!r}'
+      stream.seek(full_fb)
+      raise ValueError(efs.format(first_c))
 
 
-def str2bits(s: str,
-    octets: typing.Union[int, None] = None,
-    space: str = ' ',
-    bitdigits: str = BITDIGITS,
+# TODO
+def str2bits(s: typing.Union[str, typing.io], *,
+    bitdigits: typing.Union[int, None] = None,
     from_left: bool = False,
+    octets: typing.Union[int, None, type(...)] = None,
+    space: str = ' ',
   ) -> bytes:
   """
+  Convert a string of bitdigits to a bytes object or return a
+  bytes object from a stream that has bitdigits in it.
+
+  >>> str2bits('X ooooXXXX XoXoXoXo')
+  b'\x01\x0f\xaa'
+
+  The default bit order is from right to left but that could be
+  chenged with a truthy from_left parameter.
+
+  >>> str2bits('XooooXXX XXoXoXoX o', from_left=True)
+  b'\x87\xd5\x00'
+  >>> str2bits('XXX')
+  b'\x07'
+  >>> str2bits('XXX', from_left=True)
+  b'\xe0'
+
+  Spaces are ignored between byte values. The space parameter
+  defines the space string (default ' ').
+
+  What is considered a bitdigit could be customized with the
+  bitdigits parameter (default 'oX'). Note that matching is
+  case sensitive.
+
+  >>> str2bits('1_00001111_10101010', space='_', bitdigits='01')
+  b'\x01\x0f\xaa'
+
+  When called with a string, ValueError is raised if the string
+  has invalid format. However, if the bitsize of the value is
+  known beforehand then with an explicit octets parameter the
+  reading could be stopped in time.
+
+  >>> s = 'X ooooXXXX XoXoXoXo 3F 34'
+  >>> str2bits(s)
+  Traceback (most recent call last):
+    ...
+  ValueError: expected a bitdigit (oX): '3'
+  >>> str2bits(s, octets=17)
+  b'\x01\x0f\xaa'
+
+  When called with a stream object then it gets consumed until
+  it's format is valid and no exceptions are raised. Note that
+  the stream must be seekable and tellable.
+
+  >>> stream = io.StringIO(s)
+  >>> str2bits(stream)
+  b'\x01\x0f\xaa'
+  >>> stream.read()
+  ' 3F 34'
   """
-  # TODO: docstring
+  bitdigits = bitdigits or BITDIGITS
+  if octets == ...:
+    octets = None
   if not hasattr(s, 'read'):
     s = io.StringIO(s)
     exc_cls = ValueError
   else:
     exc_cls = None
   full_fb = s.tell()
-  bools = list(bitdigits_as_booleans(s, space=space,
-      bitdigits=bitdigits, exc_cls=exc_cls))
+  bools = list(bitdigits_as_booleans(s, bitdigits=bitdigits,
+      exc_cls=exc_cls, octets=octets, space=space))
   i = 0
   num_bytes, num_bits = None, None
   if octets:
@@ -286,18 +397,18 @@ def str2bits(s: str,
   return bytes(result)
 
 
-def str2bytes(s: typing.Union[str, typing.io],
+def str2bytes(s: typing.Union[str, typing.io], *,
+    octets: typing.Union[int, None, type(...)] = None,
     space: str = ' ',
+    strict: typing.Union[None, bool] = None,
   ) -> bytes:
   """
   Convert a string of hexadecimal vales to a bytes object
   or return a bytes object from a stream that has hexadecimal
-  characters in it.
+  characters in it. Note that the stream must be seekable and
+  tellable.
 
-  When called with a string, ValueError is raised if the string
-  has invalid format. When called with a stream object then it
-  gets consumed until it's format is valid and no exceptions are
-  raised. Note that the stream must be seekable and tellable.
+  For more info see hexdigits_as_integers().
 
   >>> s = '68 65 6C 6C 6F 20 77 6F 72 6C 64'
   >>> str2bytes(s)
@@ -306,27 +417,43 @@ def str2bytes(s: typing.Union[str, typing.io],
   Spaces are ignored between byte values. The space parameter
   defines the space string (default ' ').
 
-  >>> s2 = s.replace(' ', '_')
-  >>> s2
+  >>> s = s.replace(' ', '_')
+  >>> s
   '68_65_6C_6C_6F_20_77_6F_72_6C_64'
-  >>> str2bytes(s2, space='_')
+  >>> str2bytes(s, space='_')
   b'hello world'
 
-  >>> s3 = '68 65 6C 6C6F 2077 6 F 72 6C 64 whatever'
-  >>> stream = io.StringIO(s3)
+  When called with a string, strict mode is on by default.
+
+  >>> s = '68 65 6C 6C6F 2077 6 F 72 6C 64 Hello World!'
+  >>> str2bytes(s)
+  Traceback (most recent call last):
+    ...
+  ValueError: expected a hexdigit (0123456789abcdefABCDEF): 'H'
+  >>> str2bytes(s, strict=False)
+  b'hello world'
+
+  When called with a stream object then strict mode is off by
+  default.
+
+  >>> stream = io.StringIO(s)
   >>> str2bytes(stream)
   b'hello world'
   >>> stream.read()
-  ' whatever'
-  >>> str2bytes(s3)
-  Traceback (most recent call last):
-    ...
-  ValueError: expected a hexdigit: 'w'
+  ' Hello World!'
+  >>> stream.seek(0)
+  0
+  >>> str2bytes(stream, octets=5*8)
+  b'hello'
+  >>> stream.read()
+  ' 2077 6 F 72 6C 64 Hello World!'
   """
   if not hasattr(s, 'read'):
     s = io.StringIO(s)
-    exc_cls = ValueError
+    if strict is None:
+      strict = True
   else:
-    exc_cls = None
-  return bytes(x for x in hexdigits_as_integers(s, space=space,
-      exc_cls=exc_cls))
+    if strict is None:
+      strict = False
+  return bytes(x for x in hexdigits_as_integers(s,
+      octets=octets, space=space, strict=strict))

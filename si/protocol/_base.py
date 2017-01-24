@@ -1,15 +1,20 @@
 import collections
 import typing
 
-from ._helper import bits2str, bytes2str, str2bytes
+from ._helper import bits2str, bytes2str, str2bits, str2bytes
 
 
 class BaseBytes(bytes):
   _OCTETS = NotImplemented
 
   def __new__(cls, arg, *args,
-      _from_val=True, _get_octets=None,
+      _from_val=True, _from_str=True, _get_octets=None,
       **kwgs):
+    if _from_str:
+      try:
+        return cls.from_str(arg)
+      except:
+        pass
     if _from_val and hasattr(cls, 'from_val'):
       try:
         return cls.from_val(arg)
@@ -85,15 +90,17 @@ class Bytes(BaseBytes):
     return bytes2str(self)
 
   @classmethod
-  def from_str(cls, s: str, space: str = ' ') -> 'cls':
+  def from_str(cls, s: typing.Union[str, typing.io]) -> 'cls':
     """
     Create an instance from a string
 
-    String must contain pairs of hexadecimal characters.
+    String must contain pairs of hexadecimal characters. Spaces
+    are ignored.
 
-    See si.protocol._base.str2bytes()
+    See si.protocol._helper.str2bytes()
     """
-    return cls(str2bytes(s, space=space), _from_val=False)
+    return cls(str2bytes(s, octets=cls._OCTETS),
+        _from_val=False)
 
 
   def _check_octets(self) -> typing.Tuple[int, int, int]:
@@ -125,36 +132,17 @@ class Bits(BaseBytes):
     return bits2str(self, self.octets())
 
   @classmethod
-  def from_str(cls, s: str) -> 'cls':
+  def from_str(cls, s: typing.Union[str, typing.io]) -> 'cls':
     """
-    Create an instance from a string
+    Create an instance from a string or a stream
 
-    String must contain case insensitive "o", "0", "X", and "1"
-    characters only. Spaces and underscores are ignored.
+    Input must contain case "o" and "X" characters only. Spaces
+    are ignored.
+
+    See si.protocol._helper.str2bits()
     """
-    def reversed_intgen():
-      bit_vals = []
-      for c in reversed(s.lower()):
-        if c in ' _':
-          continue
-        if c in 'o0':
-          bit_vals.append(0)
-        elif c in 'x1':
-          bit_vals.append(2**len(bit_vals))
-        else:
-          efs = ('expected "o", "0", "X", and "1" characters '
-              'instead of: {!r}')
-          raise ValueError(efs.format(c))
-        if len(bit_vals) == 8:
-          yield sum(bit_vals)
-          bit_vals = []
-      else:
-        if bit_vals:
-          yield sum(bit_vals)
-    if hasattr(cls, '_bits') and len(s) != cls._bits:
-      efs = 'expected a string of {} characters instead of: {}'
-      raise ValueError(efs.format(cls._bits, len(s)))
-    return cls(x for x in reversed(list(reversed_intgen())))
+    return cls(str2bits(s, octets=cls._OCTETS),
+        _from_val=False)
 
   def _check_octets(self) -> typing.Tuple[int, int, int]:
     """
