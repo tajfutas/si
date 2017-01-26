@@ -29,6 +29,7 @@ class DayOfWeekBits(_base.Bits):
     return cls((0b111,))
 
   @classmethod
+  @_decorator.default_if_none
   def from_val(cls,
       val: typing.Union[_si.DayOfWeek, str, int],
     ) -> 'cls':
@@ -81,6 +82,7 @@ class FourWeekCounterRelativeBits(_base.Bits):
     return cls((0b00,))
 
   @classmethod
+  @_decorator.default_if_none
   def from_val(cls, val: int) -> 'cls':
     """
     Create a FourWeekCounterRelativeBits instance from the given
@@ -109,6 +111,7 @@ class HalfDayBit(_base.Bits):
     return cls((0b0,))
 
   @classmethod
+  @_decorator.default_if_none
   def from_val(cls,
       val: typing.Union[_si.DayOfWeek, str, int],
     ) -> 'cls':

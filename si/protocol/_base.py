@@ -18,7 +18,7 @@ class BaseBytes(bytes):
     if (_from in (None, True, 'val')
         and hasattr(cls, 'from_val')):
       try:
-        inst = cls.from_val(*args)
+        inst = cls.from_val(*args, **kwgs)
       except Exception as e:
         if _from is not None:
           _from_exc = e
@@ -28,7 +28,7 @@ class BaseBytes(bytes):
         and _from in (None, True, 'str')
         and hasattr(cls, 'from_str')):
       try:
-        inst = cls.from_str(*args)
+        inst = cls.from_str(*args, **kwgs)
       except Exception as e:
         if _from is not None:
           _from_exc = e
@@ -182,24 +182,44 @@ class Bits(BaseBytes):
     return num_bytes, exp_num_bytes, exp_num_bits
 
 
-class PadBits(Bits):
+class PadBitsBase(Bits):
+  # TODO: docstring
 
-  _OCTETS = ...
+  _OCTETS = NotImplemented
 
-  def __new__(cls, octets, arg=None):
-    if arg is None:
-      exp_num_bytes, exp_num_bits = divmod(octets, 8)
-      exp_num_bytes += bool(exp_num_bits)
-      arg = exp_num_bytes
-    inst = super().__new__(cls, arg,
-        _get_octets=lambda octets=octets: octets)
-    return inst
+  def __new__(cls, *args, **kwgs) -> 'cls':
+    if not args:
+      num_bytes, num_bits = divmod(cls._OCTETS, 8)
+      num_bytes += bool(num_bits)
+      args = bytes(num_bytes),
+      kwgs['_from'] = False
+    return super().__new__(cls, *args, **kwgs)
 
-  def default(self):
-    return self
+  @classmethod
+  def from_val(cls,
+      val: None = None,
+    ) -> 'cls':
+    """
+    Return the instance
 
-  def val(self):
-    return self
+    The val parameter must be None if given, otherwise
+    ValueError gets raised.
+    """
+    if val is not None:
+      raise ValueError('val must be None')
+    return cls()
+
+  @classmethod
+  def default(cls) -> 'cls':
+    return cls()
+
+  def val(self) -> None:
+    return None
+
+
+def PadBits(octets):
+  # TODO: docstring
+  return type('PadBits', (PadBitsBase,), dict(_OCTETS=octets))
 
 
 class Container(Bytes):
@@ -277,12 +297,14 @@ class Container(Bytes):
 
   @classmethod
   def from_items(cls,
-      _itemseq: typing.Union[None, typing.Sequence[
+      _collection: typing.Union[None, typing.Collection[
           typing.Union[None, BaseBytes]]] = None,
+      *,
+      _from_val: bool = False,
       **itms
     ) -> 'cls':
     "Create an instance from items" # TODO more docstring
-    if _itemseq is None:
+    if _collection is None:
       unknw_k = set(itms.keys()) - set(i[0] for i in cls._ITEMS)
       if unknw_k:
         efs = 'invalid key{}: {}'
@@ -292,15 +314,19 @@ class Container(Bytes):
                 for k in sorted(unknw_k))))
     else:
       if itms:
-        es = 'either sequence of items or item keywords'
-        raise AttributeError(es)
+        efs = 'either collection of {} or {} keywords'
+        what = (('values', 'value') if _from_val
+            else ('items', 'item'))
+        raise AttributeError(efs.format(*what))
     _items = collections.OrderedDict()
     for i, (item_name, item_cls) in enumerate(cls._ITEMS):
-      if _itemseq is not None:
-        v = _itemseq[i]
+      if _collection is not None:
+        v = _collection[i]
       else:
         v = itms.get(item_name)
-      if v is None:
+      if _from_val:
+        item_inst = item_cls.from_val(v)
+      elif v is None:
         try:
           item_inst = item_cls.default()
         except AttributeError:
@@ -318,9 +344,12 @@ class Container(Bytes):
 
   @classmethod
   def from_val(cls,
-      val: typing.Collection,
+      _collection: typing.Union[None, typing.Collection[
+          typing.Union[None, typing.Any]]] = None,
+      **vals
     ) -> 'cls':
-    raise NotImplementedError()  # TODO
+    "Create an instance from values" # TODO more docstring
+    return cls.from_items(_collection, _from_val=True, **vals)
 
   def __getitem__(self, item):
     if isinstance(item, str):

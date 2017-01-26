@@ -61,6 +61,17 @@ def fixed_size(
   return wrapped_decorator
 
 
+def default_if_none(from_val) -> 'decorator':
+  # TODO: docstring
+  @functools.wraps(from_val)
+  def wrapped_from_val(cls, val):
+    if val is None:
+      return cls.default()
+    else:
+      return from_val(cls, val)
+  return wrapped_from_val
+
+
 def enum_defined(
     enumeration: enum.Enum,
   ) -> 'decorator':
@@ -82,3 +93,7 @@ def enum_defined(
             enumeration.__name__))
     return cls
   return wrapped_decorator
+
+
+
+
