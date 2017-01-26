@@ -1,24 +1,11 @@
-"""
-Dataparts are always subclassed from the builtin bytes object
-thus are immutable.
-
-Each datapart represents a specific SI data and may be specific
-by its way of construction and/or the extra methods which
-convert the data into human readable forms.
-
-The class decorators in this module are used to avoid deep
-inheritance and code repetition.
-"""
-
 import enum
 import functools
-import math
 import typing
 
 from si.helper import classproperty
 
 
-def default_if_none(from_val) -> 'decorator':
+def default_if_none(from_val) -> typing.Callable:
   # TODO: docstring
   @functools.wraps(from_val)
   def wrapped_from_val(cls, val):
@@ -31,7 +18,7 @@ def default_if_none(from_val) -> 'decorator':
 
 def enum_defined(
     enumeration: enum.Enum,
-  ) -> 'decorator':
+  ) -> typing.Type['_base.BaseBytes']:
   """
   Check value for enumeration membership
 
@@ -50,7 +37,3 @@ def enum_defined(
             enumeration.__name__))
     return cls
   return wrapped_decorator
-
-
-
-
