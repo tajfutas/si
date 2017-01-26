@@ -1,4 +1,5 @@
 import collections
+import types
 import typing
 
 from ._helper import bits2str, bytes2str, str2bits, str2bytes
@@ -7,23 +8,36 @@ from ._helper import bits2str, bytes2str, str2bits, str2bytes
 class BaseBytes(bytes):
   _OCTETS = NotImplemented
 
-  def __new__(cls, arg: typing.Any, *args,
-      _from: typing.Union[bool, str] = True,
-      _get_octets: typing.Callable = None,
-      **kwgs):
-    if ((_from is True or _from == 'val')
+  def __new__(cls, *args,
+      _from: typing.Union[None, bool, str] = None,
+      _from_exc: typing.Union[Exception, None] = None,
+      _get_octets: typing.Union[None, typing.Callable] = None,
+      **kwgs
+    ) -> 'cls':
+    inst = None
+    if (_from in (None, True, 'val')
         and hasattr(cls, 'from_val')):
       try:
-        return cls.from_val(arg)
-      except:
-        pass
-    if ((_from is True or _from == 'str')
+        inst = cls.from_val(*args)
+      except Exception as e:
+        if _from is not None:
+          _from_exc = e
+      else:
+        _from_exc = None
+    if (inst is None
+        and _from in (None, True, 'str')
         and hasattr(cls, 'from_str')):
       try:
-        return cls.from_str(arg)
-      except:
-        pass
-    inst = super().__new__(cls, arg, *args, **kwgs)
+        inst = cls.from_str(*args)
+      except Exception as e:
+        if _from is not None:
+          _from_exc = e
+      else:
+        _from_exc = None
+    if _from_exc:
+      raise _from_exc
+    if inst is None:
+      inst = super().__new__(cls, *args, **kwgs)
     if _get_octets:
       inst._get_octets = _get_octets
     inst._check_octets()
@@ -195,7 +209,7 @@ class Container(Bytes):
   _ITEMS = ()
 
   @staticmethod
-  def bytes_from_items(items):
+  def _bytes_from_items(items):
     if hasattr(items, 'values'):
       gen = items.values()
     else:
@@ -232,12 +246,43 @@ class Container(Bytes):
         raise ValueError('finished in bitwise mode')
     return bytes_
 
-  def __new__(cls,
-      itemseq: typing.Union[None, typing.Sequence[
+  def __new__(cls, *args,
+      _from: typing.Union[None, bool, str] = None,
+      _from_exc: typing.Union[Exception, None] = None,
+      _get_octets: typing.Union[None, typing.Callable] = None,
+      _items: typing.Union[None, types.MappingProxyType] = None,
+      **kwgs
+    ) -> 'cls':
+    inst = None
+    if (_from in (None, True, 'items')
+        and hasattr(cls, 'from_items')):
+      try:
+        inst = cls.from_items(*args, **kwgs)
+      except Exception as e:
+        if _from is not None:
+          _from_exc = e
+      else:
+        _from_exc = None
+    if inst is None:
+      inst = super().__new__(cls, *args,
+          _from = _from,
+          _from_exc = _from_exc,
+          _get_octets = _get_octets,
+          **kwgs)
+    if _items:
+      inst._items = _items
+    elif not hasattr(inst, '_items'):
+      inst._items = inst._get_items()
+    return inst
+
+  @classmethod
+  def from_items(cls,
+      _itemseq: typing.Union[None, typing.Sequence[
           typing.Union[None, BaseBytes]]] = None,
       **itms
     ) -> 'cls':
-    if itemseq is None:
+    "Create an instance from items" # TODO more docstring
+    if _itemseq is None:
       unknw_k = set(itms.keys()) - set(i[0] for i in cls._ITEMS)
       if unknw_k:
         efs = 'invalid key{}: {}'
@@ -247,11 +292,12 @@ class Container(Bytes):
                 for k in sorted(unknw_k))))
     else:
       if itms:
-        raise AttributeError('either itemseq or item keywords')
+        es = 'either sequence of items or item keywords'
+        raise AttributeError(es)
     _items = collections.OrderedDict()
     for i, (item_name, item_cls) in enumerate(cls._ITEMS):
-      if itemseq is not None:
-        v = itemseq[i]
+      if _itemseq is not None:
+        v = _itemseq[i]
       else:
         v = itms.get(item_name)
       if v is None:
@@ -266,24 +312,33 @@ class Container(Bytes):
         else:
           item_inst = item_cls(v)
       _items[item_name] = item_inst
-    arg = cls.bytes_from_items(_items)
-    inst = super().__new__(cls, arg)
-    inst._items = _items
-    return inst
+    arg = cls._bytes_from_items(_items)
+    _items = types.MappingProxyType(_items)
+    return cls(arg, _from=False, _items=_items)
+
+  @classmethod
+  def from_val(cls,
+      val: typing.Collection,
+    ) -> 'cls':
+    raise NotImplementedError()  # TODO
 
   def __getitem__(self, item):
     if isinstance(item, str):
-      return self._items[item]
+      return self.items[item]
     else:
       return super().__getitem__(item)
 
+  @property
   def items(self):
-    return collections.OrderedDict(self._items)
+    return self._items
+
+  def _get_items(self):
+    return NotImplemented  # TODO
 
   def _get_octets(self):
-    return sum((i.octets() for i in self.items().values()))
+    return sum((i.octets() for i in self.items.values()))
 
   def val(self):
     return collections.OrderedDict((name, (item.val()
         if hasattr(item, 'val') else item))
-        for name, item in self.items().items())
+        for name, item in self.items.items())
