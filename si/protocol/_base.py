@@ -7,17 +7,20 @@ from ._helper import bits2str, bytes2str, str2bits, str2bytes
 class BaseBytes(bytes):
   _OCTETS = NotImplemented
 
-  def __new__(cls, arg, *args,
-      _from_val=True, _from_str=True, _get_octets=None,
+  def __new__(cls, arg: typing.Any, *args,
+      _from: typing.Union[bool, str] = True,
+      _get_octets: typing.Callable = None,
       **kwgs):
-    if _from_str:
-      try:
-        return cls.from_str(arg)
-      except:
-        pass
-    if _from_val and hasattr(cls, 'from_val'):
+    if ((_from is True or _from == 'val')
+        and hasattr(cls, 'from_val')):
       try:
         return cls.from_val(arg)
+      except:
+        pass
+    if ((_from is True or _from == 'str')
+        and hasattr(cls, 'from_str')):
+      try:
+        return cls.from_str(arg)
       except:
         pass
     inst = super().__new__(cls, arg, *args, **kwgs)
@@ -99,8 +102,7 @@ class Bytes(BaseBytes):
 
     See si.protocol._helper.str2bytes()
     """
-    return cls(str2bytes(s, octets=cls._OCTETS),
-        _from_val=False)
+    return cls(str2bytes(s, octets=cls._OCTETS), _from=False)
 
 
   def _check_octets(self) -> typing.Tuple[int, int, int]:
@@ -141,8 +143,7 @@ class Bits(BaseBytes):
 
     See si.protocol._helper.str2bits()
     """
-    return cls(str2bits(s, octets=cls._OCTETS),
-        _from_val=False)
+    return cls(str2bits(s, octets=cls._OCTETS), _from=False)
 
   def _check_octets(self) -> typing.Tuple[int, int, int]:
     """

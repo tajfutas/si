@@ -295,16 +295,19 @@ def hexdigits_as_integers(stream: typing.io, *,
       raise ValueError(efs.format(first_c))
 
 
-# TODO
 def str2bits(s: typing.Union[str, typing.io], *,
     bitdigits: typing.Union[int, None] = None,
     from_left: bool = False,
     octets: typing.Union[int, None, type(...)] = None,
     space: str = ' ',
+    strict: typing.Union[None, bool] = None,
   ) -> bytes:
   """
   Convert a string of bitdigits to a bytes object or return a
-  bytes object from a stream that has bitdigits in it.
+  bytes object from a stream that has bitdigits in it. Note that
+  the stream must be seekable and tellable.
+
+  For more info see bitdigits_as_booleans().
 
   >>> str2bits('X ooooXXXX XoXoXoXo')
   b'\x01\x0f\xaa'
@@ -329,40 +332,44 @@ def str2bits(s: typing.Union[str, typing.io], *,
   >>> str2bits('1_00001111_10101010', space='_', bitdigits='01')
   b'\x01\x0f\xaa'
 
-  When called with a string, ValueError is raised if the string
-  has invalid format. However, if the bitsize of the value is
-  known beforehand then with an explicit octets parameter the
-  reading could be stopped in time.
+  When called with a string, strict mode is on by default.
 
   >>> s = 'X ooooXXXX XoXoXoXo 3F 34'
   >>> str2bits(s)
   Traceback (most recent call last):
     ...
   ValueError: expected a bitdigit (oX): '3'
-  >>> str2bits(s, octets=17)
+  >>> str2bits(s, strict=False)
   b'\x01\x0f\xaa'
 
-  When called with a stream object then it gets consumed until
-  it's format is valid and no exceptions are raised. Note that
-  the stream must be seekable and tellable.
+  When called with a stream object then strict mode is off by
+  default.
 
   >>> stream = io.StringIO(s)
   >>> str2bits(stream)
   b'\x01\x0f\xaa'
   >>> stream.read()
   ' 3F 34'
+  >>> stream.seek(0)
+  0
+  >>> str2bits(stream, octets=9)
+  b'\x01\x0f'
+  >>> stream.read()
+  ' XoXoXoXo 3F 34'
   """
   bitdigits = bitdigits or BITDIGITS
   if octets == ...:
     octets = None
   if not hasattr(s, 'read'):
     s = io.StringIO(s)
-    exc_cls = ValueError
+    if strict is None:
+      strict = True
   else:
-    exc_cls = None
+    if strict is None:
+      strict = False
   full_fb = s.tell()
   bools = list(bitdigits_as_booleans(s, bitdigits=bitdigits,
-      exc_cls=exc_cls, octets=octets, space=space))
+      octets=octets, space=space, strict=strict))
   i = 0
   num_bytes, num_bits = None, None
   if octets:

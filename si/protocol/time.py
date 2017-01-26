@@ -45,7 +45,7 @@ class DayOfWeekBits(_base.Bits):
       v = [val.value]
     elif isinstance(val, str):
       v = [_si.DayOfWeek[val.title()].value]
-    return cls(v, _from_val=False, _from_str=False)
+    return cls(v, _from=False)
 
   def isoweekday(self) -> int:
     """"
@@ -86,7 +86,7 @@ class FourWeekCounterRelativeBits(_base.Bits):
     Create a FourWeekCounterRelativeBits instance from the given
     integer
     """
-    return cls([val], _from_val=False, _from_str=False)
+    return cls([val], _from=False)
 
   def val(self) -> int:
     "Return the four week counter relative integer value"
@@ -125,7 +125,7 @@ class HalfDayBit(_base.Bits):
     elif isinstance(val, str):
       normval = val.lower().replace('.','').replace(' ', '')
       v = [_si.HalfDay[normval].value]
-    return cls(v, _from_val=False, _from_str=False)
+    return cls(v, _from=False)
 
   def val(self) -> _si.HalfDay:
     "Return the corresponding si.HalfDay enumeration"
