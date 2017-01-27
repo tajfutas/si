@@ -145,7 +145,7 @@ class TD_Parts(typing.NamedTuple):
 class TDByte(_base.Container):
   _OCTETS = 0o10
   _ITEMS = (
-      ("pad", _base.PadBits(0o2)),
+      ("pad", _base.PadBits(2)),
       ("fourweekcrel", FourWeekCounterRelativeBits),
       ("dayofweek", DayOfWeekBits),
       ("halfday", HalfDayBit),

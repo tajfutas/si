@@ -1,4 +1,5 @@
 import collections
+import io
 import types
 import typing
 
@@ -9,9 +10,10 @@ class BaseBytes(bytes):
   _OCTETS = NotImplemented
 
   def __new__(cls, *args,
+      _check_octets: bool = True,
       _from: typing.Union[None, bool, str] = None,
       _from_exc: typing.Union[Exception, None] = None,
-      _get_octets: typing.Union[None, typing.Callable] = None,
+      _octets: typing.Union[None, int] = None,
       **kwgs
     ) -> 'cls':
     inst = None
@@ -38,9 +40,14 @@ class BaseBytes(bytes):
       raise _from_exc
     if inst is None:
       inst = super().__new__(cls, *args, **kwgs)
-    if _get_octets:
-      inst._get_octets = _get_octets
-    inst._check_octets()
+    if _octets:
+      if cls._OCTETS != ...:
+        efs = ('{}: attempt to set instance octets for a fixed '
+            'size data')
+        raise ValueError(efs.format(cls.__name__))
+      inst._octets = _octets
+    if _check_octets:
+      inst._check_octets()
     return inst
 
   def __repr__(self):
@@ -65,11 +72,11 @@ class BaseBytes(bytes):
     """
     num_bytes = len(self)
     exp_num_bytes, exp_num_bits = divmod(self.octets(), 8)
-    exp_num_bytes += bool(exp_num_bits)
-    if exp_num_bytes != num_bytes:
+    exp_num_bytes_ = exp_num_bytes + bool(exp_num_bits)
+    if exp_num_bytes_ != num_bytes:
       efs = '{}: invalid length (expected {}): {}'
       raise ValueError(efs.format(self.__class__.__name__,
-          exp_num_bytes, num_bytes))
+          exp_num_bytes_, num_bytes))
     return num_bytes, exp_num_bytes, exp_num_bits
 
   def octets(self) -> int:
@@ -79,12 +86,7 @@ class BaseBytes(bytes):
       raise NotImplementedError(efs.format(
           self.__class__.__name__))
     elif self._OCTETS == ...:
-      try:
-        return self._get_octets()
-      except AttributeError:
-        efs = '{}: expected a _get_octets() method'
-        raise NotImplementedError(efs.format(
-            self.__class__.__name__))
+      return self._octets
     else:
       return self._OCTETS
 
@@ -107,7 +109,25 @@ class Bytes(BaseBytes):
     return bytes2str(self)
 
   @classmethod
-  def from_str(cls, s: typing.Union[str, typing.io]) -> 'cls':
+  def from_bytes(cls,
+      b: typing.Union[bytes, typing.TextIO]
+    ) -> 'cls':
+    """
+    Create an instance from a bytes or a binary I/O object
+    """
+    if not hasattr(b, 'read'):
+      b = io.BytesIO(b)
+      if strict is None:
+        strict = True
+    else:
+      if strict is None:
+        strict = False
+    # TODO
+
+  @classmethod
+  def from_str(cls,
+      s: typing.Union[str, typing.TextIO]
+    ) -> 'cls':
     """
     Create an instance from a string
 
@@ -120,19 +140,7 @@ class Bytes(BaseBytes):
 
 
   def _check_octets(self) -> typing.Tuple[int, int, int]:
-    """
-    Check octets
-
-    Called by __init__ and should raise
-    * RuntimeError if cls._OCTETS was given wrong,
-    * ValueError if the size by the given value would be wrong.
-
-    Return (num_bytes, exp_num_bytes, exp_num_bits) tuple, which
-    is a microoptimalization for subclasses which should define
-    their _check_octets() with the following first two lines:
-      t_ = super()._check_octets()
-      num_bytes, exp_num_bytes, exp_num_bits = t_
-    """
+    "See BaseBytes._check_octets()"
     t_ = super()._check_octets()
     num_bytes, exp_num_bytes, exp_num_bits = t_
     if exp_num_bits:
@@ -148,7 +156,9 @@ class Bits(BaseBytes):
     return bits2str(self, self.octets())
 
   @classmethod
-  def from_str(cls, s: typing.Union[str, typing.io]) -> 'cls':
+  def from_str(cls,
+      s: typing.Union[str, typing.TextIO]
+    ) -> 'cls':
     """
     Create an instance from a string or a stream
 
@@ -160,19 +170,7 @@ class Bits(BaseBytes):
     return cls(str2bits(s, octets=cls._OCTETS), _from=False)
 
   def _check_octets(self) -> typing.Tuple[int, int, int]:
-    """
-    Check octets
-
-    Called by __init__ and should raise
-    * RuntimeError if cls._OCTETS was given wrong,
-    * ValueError if the size by the given value would be wrong.
-
-    Return (num_bytes, exp_num_bytes, exp_num_bits) tuple, which
-    is a microoptimalization for subclasses which should define
-    their _check_octets() with the following first two lines:
-      t_ = super()._check_octets()
-      num_bytes, exp_num_bytes, exp_num_bits = t_
-    """
+    "See BaseBytes._check_octets()"
     t_ = super()._check_octets()
     num_bytes, exp_num_bytes, exp_num_bits = t_
     if self[0] & 2**8-2**exp_num_bits:
@@ -182,10 +180,10 @@ class Bits(BaseBytes):
     return num_bytes, exp_num_bytes, exp_num_bits
 
 
-class PadBitsBase(Bits):
+class PadBit(Bits):
   # TODO: docstring
 
-  _OCTETS = NotImplemented
+  _OCTETS = 0o1
 
   def __new__(cls, *args, **kwgs) -> 'cls':
     if not args:
@@ -219,7 +217,7 @@ class PadBitsBase(Bits):
 
 def PadBits(octets):
   # TODO: docstring
-  return type('PadBits', (PadBitsBase,), dict(_OCTETS=octets))
+  return type('PadBits', (PadBit,), dict(_OCTETS=octets))
 
 
 class Container(Bytes):
@@ -267,9 +265,10 @@ class Container(Bytes):
     return bytes_
 
   def __new__(cls, *args,
+      _check_octets: bool = True,
       _from: typing.Union[None, bool, str] = None,
       _from_exc: typing.Union[Exception, None] = None,
-      _get_octets: typing.Union[None, typing.Callable] = None,
+      _octets: typing.Union[None, int] = None,
       _items: typing.Union[None, types.MappingProxyType] = None,
       **kwgs
     ) -> 'cls':
@@ -285,14 +284,19 @@ class Container(Bytes):
         _from_exc = None
     if inst is None:
       inst = super().__new__(cls, *args,
+          _check_octets = False,
           _from = _from,
           _from_exc = _from_exc,
-          _get_octets = _get_octets,
+          _octets = _octets,
           **kwgs)
     if _items:
       inst._items = _items
     elif not hasattr(inst, '_items'):
       inst._items = inst._get_items()
+    if cls._OCTETS == ... and not hasattr(inst, '_octets'):
+      inst._octets = inst._get_octets()
+    elif _check_octets:
+      inst._check_octets()
     return inst
 
   @classmethod
@@ -361,7 +365,22 @@ class Container(Bytes):
   def items(self):
     return self._items
 
+  def _check_octets(self) -> typing.Tuple[int, int, int]:
+    "See BaseBytes._check_octets()"
+    t_ = super()._check_octets()
+    num_bytes, exp_num_bytes, exp_num_bits = t_
+    octets = 8 * exp_num_bytes + exp_num_bits
+    exp_octets = self._get_octets()
+    if octets != exp_octets:
+      efs = '{}: invalid octets (expected {}): {}'
+      raise ValueError(efs.format(self.__class__.__name__,
+          exp_octets, octets))
+    return num_bytes, exp_num_bytes, exp_num_bits
+
   def _get_items(self):
+    i = 0
+    for item_name, item_cls in self._ITEMS:
+      pass
     return NotImplemented  # TODO
 
   def _get_octets(self):
