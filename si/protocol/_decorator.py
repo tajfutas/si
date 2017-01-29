@@ -2,7 +2,7 @@ import enum
 import functools
 import typing
 
-from si.helper import classproperty
+from si._helper import classproperty
 
 
 def default_if_none(from_val) -> typing.Callable:
