@@ -3,7 +3,7 @@ import io
 import types
 import typing
 
-from ._helper import bits2str, bytes2str, str2bits, str2bytes
+#from .helper import bits2str, bytes2str, str2bits, str2bytes
 
 
 class BaseBytes(bytes):
