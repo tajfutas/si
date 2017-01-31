@@ -227,4 +227,25 @@ class RollbackableBytesRead(
   is wrapped; write must be done separately.
   """
 
+def rollbackable(
+    obj: typing.Union[
+        typing.Iterable[typing.Union[bytes, str]],
+        typing.io,
+      ]
+  ) -> Rollbackable:
+  """
+  Factory function to wrap a string or bytes object, or a stream
+  object of those types to a Rollbackable object.
+  """
+  if hasattr(obj, 'read'):
+    if not hasattr(obj, 'encoding'):
+      return RollbackableBytesRead(obj)
+    else:
+      return RollbackableRead(obj)
+  elif hasattr(obj, 'decode'):
+    return RollbackableBytes(obj)
+  else:
+    return Rollbackable(obj)
+
+
 del typing

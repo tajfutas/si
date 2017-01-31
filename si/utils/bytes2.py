@@ -4,7 +4,8 @@ from types import MappingProxyType as _MappingProxyType
 import typing
 
 # TODO !!!
-#from .helper import bits2str, bytes2str, str2bits, str2bytes
+from . import bconv as _bconv
+from . import rollback as _rollback
 
 
 class BaseBytes(bytes):
@@ -55,6 +56,18 @@ class BaseBytes(bytes):
     return '{}({})'.format(self.__class__.__name__,
         super().__repr__())
 
+  @property
+  def octets(self) -> int:
+    "Size in bits"
+    if self._OCTETS == NotImplemented:
+      efs = '{}: expected an explicit or ... self._OCTETS'
+      raise NotImplementedError(efs.format(
+          self.__class__.__name__))
+    elif self._OCTETS is None:
+      return self._octets
+    else:
+      return self._OCTETS
+
   def _check_octets(self) -> typing.Tuple[int, int, int]:
     """
     Check octets
@@ -72,7 +85,7 @@ class BaseBytes(bytes):
       return num_bytes, exp_num_bytes, exp_num_bits
     """
     num_bytes = len(self)
-    exp_num_bytes, exp_num_bits = divmod(self.octets(), 8)
+    exp_num_bytes, exp_num_bits = divmod(self.octets, 8)
     exp_num_bytes_ = exp_num_bytes + bool(exp_num_bits)
     if exp_num_bytes_ != num_bytes:
       efs = '{}: invalid length (expected {}): {}'
@@ -80,23 +93,12 @@ class BaseBytes(bytes):
           exp_num_bytes_, num_bytes))
     return num_bytes, exp_num_bytes, exp_num_bits
 
-  def octets(self) -> int:
-    "Size in bits"
-    if self._OCTETS == NotImplemented:
-      efs = '{}: expected an explicit or ... self._OCTETS'
-      raise NotImplementedError(efs.format(
-          self.__class__.__name__))
-    elif self._OCTETS == ...:
-      return self._octets
-    else:
-      return self._OCTETS
-
 
 class Bytes(BaseBytes):
 
   def __init__(self, *args, **kwgs):
     super().__init__()
-    exp_num_bytes, exp_num_bits = divmod(self.octets(), 8)
+    exp_num_bytes, exp_num_bits = divmod(self.octets, 8)
     if exp_num_bits:
       efs = ('{}: invalid cls._OCTETS for Bytes: modulo 8 ',
           'should have been zero')
@@ -110,35 +112,48 @@ class Bytes(BaseBytes):
     return bytes2str(self)
 
   @classmethod
-  def from_bytes(cls,
-      b: typing.Union[bytes, typing.TextIO]
+  def from_ints(cls,
+      i: typing.Iterable[int],
+      **kwgs
     ) -> 'cls':
     """
-    Create an instance from a bytes or a binary I/O object
+    Create an instance from the given iterable of integers of
+    range 0--255.
     """
-    if not hasattr(b, 'read'):
-      b = _io.BytesIO(b)
-      if strict is None:
-        strict = True
-    else:
-      if strict is None:
-        strict = False
-    # TODO
+    exp_len = cls._OCTETS // 8
+    iter_i = iter(i)
+    ints = [next(iter_i) for _ in range(exp_len)]
+    if len(ints) != exp_len:
+      efs = 'expected number of integers was {}; got {}'
+      raise ValueError(efs.format(exp_len, len(ints)))
+    kwgs['_from'] = False
+    return cls(ints, **kwgs)
 
   @classmethod
   def from_str(cls,
-      s: typing.Union[str, typing.TextIO]
+      s: typing.Iterable[str],
+      *,
+      ignored: str = ' _|',
+      **kwgs
     ) -> 'cls':
     """
-    Create an instance from a string
+    Create an instance from an iterable that should yield
+    character strings of hexdigit pairs.
 
-    String must contain pairs of hexadecimal characters. Spaces
-    are ignored.
+    Default ignored charaters are whitespace, underscore and
+    vertical bar. This can be customized with the ignored
+    parameter.
 
-    See si.protocol._helper.str2bytes()
+    See si.utils.bconv.str2bytes()
     """
-    return cls(str2bytes(s, octets=cls._OCTETS), _from=False)
-
+    exp_len = 2 * cls._OCTETS // 8
+    iter_s = iter(s)
+    ints = [next(iter_s) for _ in range(exp_len)]
+    if len(ints) != exp_len:
+      efs = 'expected number of hexdigits was {}; got {}'
+      raise ValueError(efs.format(exp_len, len(ints)))
+    kwgs['_from'] = False
+    return cls(_bconv.str2ints(ints, ignored=ignored), **kwgs)
 
   def _check_octets(self) -> typing.Tuple[int, int, int]:
     "See BaseBytes._check_octets()"
@@ -154,7 +169,7 @@ class Bytes(BaseBytes):
 class Bits(BaseBytes):
 
   def __str__(self):
-    return bits2str(self, self.octets())
+    return bits2str(self, self.octets)
 
   @classmethod
   def from_str(cls,
@@ -223,7 +238,7 @@ def PadBits(octets):
 
 class Container(Bytes):
 
-  _OCTETS = ...
+  _OCTETS = None
 
   _ITEMS = ()
 
@@ -236,7 +251,7 @@ class Container(Bytes):
     bytes_, last_byte_val = b'', 0b0
     octets, last_byte_bits = 0o0, 0o0
     for item in gen:
-      item_num_bytes, item_num_bits = divmod(item.octets(), 8)
+      item_num_bytes, item_num_bits = divmod(item.octets, 8)
       if item_num_bytes:
         if last_byte_val:
           efs = 'received bytes in bitwise mode: {!r}'
@@ -385,7 +400,7 @@ class Container(Bytes):
     return NotImplemented  # TODO
 
   def _get_octets(self):
-    return sum((i.octets() for i in self.items.values()))
+    return sum((i.octets for i in self.items.values()))
 
   def val(self):
     return _collections.OrderedDict((name, (item.val()

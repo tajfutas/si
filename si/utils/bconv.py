@@ -150,7 +150,7 @@ def ints2str(
   ) -> str:
   """
   Generate string of hexadecimal pairs for the given iterable
-  of integers (of range 0-255). Note that the iterable will be
+  of integers of range 0--255. Note that the iterable will be
   fully consumed.
 
   >>> ints2str([1,64,100,255])
