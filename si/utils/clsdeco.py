@@ -1,8 +1,8 @@
-import enum
-from functools import wraps
+from enum import Enum
+from functools import wraps as _wraps
 
 
-def enum_defined(enumeration: enum.Enum):
+def enum_defined(enumeration: Enum):
   """
   Atomatically check for enumeration membership at the end of
   initialization.
@@ -11,7 +11,7 @@ def enum_defined(enumeration: enum.Enum):
   """
   def wrapped_decorator(cls):
     original_init = cls.__init__
-    @wraps(cls.__init__)
+    @_wraps(cls.__init__)
     def new_init(self, *args, **kwgs):
       original_init(self, *args[1:], **kwgs)
       self._enum = enumeration(self)
@@ -21,3 +21,6 @@ def enum_defined(enumeration: enum.Enum):
             enumeration.__name__))
     return cls
   return wrapped_decorator
+
+
+del Enum

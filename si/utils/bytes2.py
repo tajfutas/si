@@ -1,6 +1,6 @@
-import collections
-import io
-import types
+import collections as _collections
+import io as _io
+from types import MappingProxyType as _MappingProxyType
 import typing
 
 # TODO !!!
@@ -117,7 +117,7 @@ class Bytes(BaseBytes):
     Create an instance from a bytes or a binary I/O object
     """
     if not hasattr(b, 'read'):
-      b = io.BytesIO(b)
+      b = _io.BytesIO(b)
       if strict is None:
         strict = True
     else:
@@ -270,7 +270,7 @@ class Container(Bytes):
       _from: typing.Union[None, bool, str] = None,
       _from_exc: typing.Union[Exception, None] = None,
       _octets: typing.Union[None, int] = None,
-      _items: typing.Union[None, types.MappingProxyType] = None,
+      _items: typing.Union[None, _MappingProxyType] = None,
       **kwgs
     ) -> 'cls':
     inst = None
@@ -323,7 +323,7 @@ class Container(Bytes):
         what = (('values', 'value') if _from_val
             else ('items', 'item'))
         raise AttributeError(efs.format(*what))
-    _items = collections.OrderedDict()
+    _items = _collections.OrderedDict()
     for i, (item_name, item_cls) in enumerate(cls._ITEMS):
       if _collection is not None:
         v = _collection[i]
@@ -344,7 +344,7 @@ class Container(Bytes):
           item_inst = item_cls(v)
       _items[item_name] = item_inst
     arg = cls._bytes_from_items(_items)
-    _items = types.MappingProxyType(_items)
+    _items = _MappingProxyType(_items)
     return cls(arg, _from=False, _items=_items)
 
   @classmethod
@@ -388,6 +388,9 @@ class Container(Bytes):
     return sum((i.octets() for i in self.items.values()))
 
   def val(self):
-    return collections.OrderedDict((name, (item.val()
+    return _collections.OrderedDict((name, (item.val()
         if hasattr(item, 'val') else item))
         for name, item in self.items.items())
+
+
+del typing

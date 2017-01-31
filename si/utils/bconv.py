@@ -1,7 +1,6 @@
-import string
 import typing
 
-from si.boltons.iterutils import chunked_iter
+from si.boltons.iterutils import chunked_iter as _chunked
 
 
 BITCHARS = 'oX'
@@ -47,7 +46,7 @@ def bits2ints(
     ...
   ValueError: undone bitgroup remained
   """
-  for bits in chunked_iter(b, 8, fill=None):
+  for bits in _chunked(b, 8, fill=None):
     if bits[-1] is None:
       raise ValueError('undone bitgroup remained')
     yield sum(bit*2**(7-i) for i, bit in enumerate(bits))
@@ -94,7 +93,7 @@ def bits2str(
   if groupsize:
     def subiterator(subgen):
       for i, _bchars in enumerate(
-          chunked_iter(subgen, groupsize, fill=None)):
+          _chunked(subgen, groupsize, fill=None)):
         if _bchars[-1] is None:
           raise ValueError('undone bitgroup remained')
         s = ''.join(_bchars)
@@ -225,10 +224,13 @@ def str2ints(
     ...
   ValueError: last character without pair: '5'
   """
-  for chunk in chunked_iter(
+  for chunk in _chunked(
       (c for e in s for c in e if c not in ignored),
       2, fill=None):
     if chunk[-1] is None:
       efs = 'last character without pair: {!r}'
       raise ValueError(efs.format(chunk[0]))
     yield int(''.join(chunk), 16)
+
+
+del typing

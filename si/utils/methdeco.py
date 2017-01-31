@@ -1,4 +1,4 @@
-from functools import wraps
+from functools import wraps as _wraps
 
 
 # http://stackoverflow.com/a/5192374/2334951
@@ -29,7 +29,7 @@ class classproperty:
 
 def default_if_none(m):
   # TODO: improve, docstring
-  @wraps(m)
+  @_wraps(m)
   def wrapped(cls, val):
     if val is None:
       return cls.default()

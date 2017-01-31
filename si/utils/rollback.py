@@ -226,3 +226,5 @@ class RollbackableBytesRead(
   Note that the resulted iterator yields integers and only read
   is wrapped; write must be done separately.
   """
+
+del typing

@@ -1,6 +1,6 @@
 import typing
 
-import si.common
+import si.common as _common
 from si.utils import bytes2
 from si.utils.methdeco import default_if_none
 
@@ -30,7 +30,7 @@ class DayOfWeekBits(bytes2.Bits):
   @classmethod
   @default_if_none
   def from_val(cls,
-      val: typing.Union[si.common.DayOfWeek, str, int],
+      val: typing.Union[_common.DayOfWeek, str, int],
     ) -> 'cls':
     """
     Create a DayOfWeekBits instance from the given value
@@ -44,7 +44,7 @@ class DayOfWeekBits(bytes2.Bits):
     if hasattr(val, 'value'):
       v = [val.value]
     elif isinstance(val, str):
-      v = [si.common.DayOfWeek[val.title()].value]
+      v = [_common.DayOfWeek[val.title()].value]
     return cls(v, _from=False)
 
   def isoweekday(self) -> int:
@@ -61,9 +61,9 @@ class DayOfWeekBits(bytes2.Bits):
     else:
       return (int_value if 0 < int_value else 7)
 
-  def val(self) -> si.common.DayOfWeek:
+  def val(self) -> _common.DayOfWeek:
     "Return the corresponding si.DayOfWeek enumeration"
-    return si.common.DayOfWeek(int.from_bytes(self, 'big'))
+    return _common.DayOfWeek(int.from_bytes(self, 'big'))
 
 
 class FourWeekCounterRelativeBits(bytes2.Bits):
@@ -112,7 +112,7 @@ class HalfDayBit(bytes2.Bits):
   @classmethod
   @default_if_none
   def from_val(cls,
-      val: typing.Union[si.common.DayOfWeek, str, int],
+      val: typing.Union[_common.DayOfWeek, str, int],
     ) -> 'cls':
     """
     Create a HalfDayBit instance from the given value
@@ -126,12 +126,12 @@ class HalfDayBit(bytes2.Bits):
       v = [val.value]
     elif isinstance(val, str):
       normval = val.lower().replace('.','').replace(' ', '')
-      v = [si.common.HalfDay[normval].value]
+      v = [_common.HalfDay[normval].value]
     return cls(v, _from=False)
 
-  def val(self) -> si.common.HalfDay:
+  def val(self) -> _common.HalfDay:
     "Return the corresponding si.HalfDay enumeration"
-    return si.common.HalfDay(int.from_bytes(self, 'big'))
+    return _common.HalfDay(int.from_bytes(self, 'big'))
 
 
 class TD_Parts(typing.NamedTuple):

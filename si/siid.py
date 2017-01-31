@@ -1,31 +1,31 @@
 import typing
 
-import si
+from . import common as _common
 
 
 def get_card_family_from_siid(
     siid: typing.Union[str, int]
-  ) -> si.common.CardFamily:
+  ) -> _common.CardFamily:
   """
-  Return the si.common.CardFamily representation for the given
+  Return the _common.CardFamily representation for the given
   SIID.
   """
   # References:
   # Helper.cs 9e291aa (#L692-L733)
   card_type_name = get_card_type_from_siid(siid).name
-  return si.common.CardFamily[card_type_name]
+  return _common.CardFamily[card_type_name]
 
 
 def get_card_type_from_siid(
     siid: typing.Union[str, int]
-  ) -> si.common.CardType:
+  ) -> _common.CardType:
   """
-  Return the si.common.CardFamily representation for the given
+  Return the _common.CardFamily representation for the given
   SIID.
   """
   # References:
   # Helper.cs 9e291aa (#L735-L816)
-  cardtype = si.common.CardType
+  cardtype = _common.CardType
   try:
     siid = int(siid)
   except ValueError:
@@ -70,3 +70,6 @@ def get_card_type_from_siid(
     return cardtype.ActiveCard
   else:
     return cardtype.NotSet
+
+
+del typing
