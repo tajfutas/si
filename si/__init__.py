@@ -1,5 +1,5 @@
 __all__ = [
-    'bits',
+    'common',
     'protocol',
     'siid',
     'srr',
@@ -7,7 +7,7 @@ __all__ = [
     ]
 
 
-from .si import *
+from . import common
 from . import protocol
 from . import siid
 from . import srr

@@ -1,8 +1,8 @@
 from enum import Enum
 
 
-from . import _base
-from . import _decorator
+from si.utils import bytes2
+from si.utils.clsdeco import enum_defined
 
 
 class Protocol(Enum):
@@ -260,8 +260,8 @@ class ProtoChar(Enum):
   """
 
 
-@_decorator.enum_defined(Cmd)
-class CmdByte(_base.Bytes):
+@enum_defined(Cmd)
+class CmdByte(bytes2.Bytes):
   "Command code byte"
   # References: see Cmd references
 
@@ -277,8 +277,8 @@ class CmdByte(_base.Bytes):
     return self._protocol
 
 
-@_decorator.enum_defined(ProtoChar)
-class ProtoCharByte(_base.Bytes):
+@enum_defined(ProtoChar)
+class ProtoCharByte(bytes2.Bytes):
   "Protocol character byte"
   # References: see ProtoChar references
 
@@ -287,5 +287,5 @@ class ProtoCharByte(_base.Bytes):
 
 del Enum
 
-del _base
-del _decorator
+del bytes2
+del enum_defined

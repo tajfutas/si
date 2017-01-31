@@ -1,7 +1,7 @@
-from enum import IntEnum
+from enum import Enum
 
 
-class ProductFamily(IntEnum):
+class ProductFamily(Enum):
   # References:
   # SPORTident.Communication 9e291aa \ProductFamily.cs
   NotSet = 0
@@ -20,7 +20,7 @@ class ProductFamily(IntEnum):
   SiPoint = 241
 
 
-class ProductType(IntEnum):
+class ProductType(Enum):
   # References:
   # SPORTident.Communication 9e291aa \ProductType.cs
   NotSet = 0
@@ -44,4 +44,4 @@ class ProductType(IntEnum):
   SiPointSportident = 37617
 
 
-del IntEnum
+del Enum

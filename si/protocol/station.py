@@ -1,7 +1,7 @@
 from enum import Enum
 
-from . import _base
-from . import _decorator
+from si.utils import bytes2
+from si.utils.clsdeco import enum_defined
 
 
 class MsMode(Enum):
@@ -162,20 +162,20 @@ class SysAddr(Enum):
   GSM_PROVIDER = b'\xB4'
 
 
-@_decorator.enum_defined(MsMode)
-class MsModeByte(_base.Bytes):
+@enum_defined(MsMode)
+class MsModeByte(bytes2.Bytes):
   "MS-Mode byte"
   # References: see MsMode references
   _OCTETS = 0o10
 
 
-@_decorator.enum_defined(SysAddr)
-class SysAddrByte(_base.Bytes):
+@enum_defined(SysAddr)
+class SysAddrByte(bytes2.Bytes):
   "System address byte"
   # References: see SysAddr references
   _OCTETS = 0o10
 
 del Enum
 
-del _base
-del _decorator
+del bytes2
+del enum_defined

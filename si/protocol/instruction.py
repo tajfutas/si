@@ -3,8 +3,8 @@ import types
 import typing
 
 
-from ..helper import classproperty
-from . import Cmd, Protocol, ProtoChar
+from si.utils.methdeco import classproperty
+from .common import Cmd, Protocol, ProtoChar
 from .crc import CrcBytes
 
 

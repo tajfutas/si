@@ -9,7 +9,7 @@ __all__ = [
     ]
 
 
-from .protocol import *
+from . import common
 from . import card
 from . import crc
 from . import instruction

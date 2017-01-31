@@ -1,8 +1,8 @@
-from enum import IntEnum
+from enum import Enum
 
 # TODO: doscstrings; more info
 
-class AirPlusRadioMode(IntEnum):
+class AirPlusRadioMode(Enum):
   # References:
   # SPORTident 9e291aa \AirPlusRadioMode.cs
   NotSetOrDisabled = 0
@@ -11,7 +11,7 @@ class AirPlusRadioMode(IntEnum):
   SrRadioSendAllNew = 3
 
 
-class AirPlusSpecialMode(IntEnum):
+class AirPlusSpecialMode(Enum):
   # References:
   # SPORTident 9e291aa \AirPlusSpecialMode.cs
   NotSetOrDisabled = 0
@@ -21,7 +21,7 @@ class AirPlusSpecialMode(IntEnum):
   SiacRadioReadout = 127
 
 
-class BeaconTimingMode(IntEnum):
+class BeaconTimingMode(Enum):
   # References:
   # SPORTident 9e291aa \BeaconTimingMode.cs
   Unknown = -1
@@ -29,7 +29,7 @@ class BeaconTimingMode(IntEnum):
   PunchingMode = 1
 
 
-class CardFamily(IntEnum):
+class CardFamily(Enum):
   # References:
   # Helper.cs 9e291aa (#L692-L816)
   NotSet = 0
@@ -50,7 +50,7 @@ class CardFamily(IntEnum):
   Card11 = 15
 
 
-class CardType(IntEnum):
+class CardType(Enum):
   # References:
   # SPORTident 9e291aa \CardType.cs
   NotSet = 0
@@ -71,7 +71,7 @@ class CardType(IntEnum):
   ComCardAir = 15
 
 
-class DayOfWeek(IntEnum):
+class DayOfWeek(Enum):
   """
   Day of week enumeration.
   Sunday == 0 ... Saturday == 6
@@ -103,7 +103,7 @@ class DayOfWeek(IntEnum):
   Sa = 6
 
 
-class EvaluationStatus(IntEnum):
+class EvaluationStatus(Enum):
   # References:
   # SPORTident 9e291aa \EvaluationStatus.cs
   NotSet = 0
@@ -117,14 +117,14 @@ class EvaluationStatus(IntEnum):
   NotCompetitive = -5
 
 
-class EventForm(IntEnum):
+class EventForm(Enum):
   # References:
   # SPORTident 9e291aa \EventForm.cs
   Single = 0
   Relay = 1
 
 
-class FractionType(IntEnum):
+class FractionType(Enum):
   # References:
   # SPORTident 9e291aa \FractionType.cs
   None_ = 0
@@ -132,20 +132,20 @@ class FractionType(IntEnum):
   One256Th = 256
 
 
-class HalfDay(IntEnum):
+class HalfDay(Enum):
   # References:
   # PCPROG5 (pp. 17, 19)
   am = 0
   pm = 1
 
 
-class MSMode(IntEnum):
+class MSMode(Enum):
   # TODO: Source.
   Master = 77
   Slave = 83
 
 
-class OperatingMode(IntEnum):
+class OperatingMode(Enum):
   # References:
   # SPORTident 9e291aa \OperatingMode.cs
   Unknown = 0
@@ -170,7 +170,7 @@ class OperatingMode(IntEnum):
   BcLineSlave2 = 31
 
 
-class StampSource(IntEnum):
+class StampSource(Enum):
   # References:
   # SPORTident 9e291aa \StampSource.cs
   Readout = 0
@@ -179,4 +179,4 @@ class StampSource(IntEnum):
   RadioReadout = 3
 
 
-del IntEnum
+del Enum
