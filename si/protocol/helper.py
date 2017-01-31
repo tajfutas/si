@@ -3,16 +3,10 @@ import io
 import string
 import typing
 
-from si.helper import Rollbackable, RollbackableRead, RollbackableBytesRead
+from si.boltons.iterutils import chunked, chunked_iter
+
 
 BITCHARS = 'oX'
-
-
-def bbytes(
-    b: typing.Iterable[int],
-  ) -> bytes:
-  bits = []
-  # TODO
 
 
 def bchars(
@@ -37,6 +31,88 @@ def bchars(
   while True:
     bit = next(b)
     yield bitchars[bit]
+
+
+def bints(
+    b: typing.Iterable[int],
+  ) -> typing.Iterator[int]:
+  """
+  Generate integers in range 0-255 from the given iterable that
+  should yield bits (integers of range 0--1). Each 8 Bits are
+  grouped and a new integer generated from them.
+
+  If itereation ends but there is an undone group remained then
+  a ValueError gets raised.
+
+  >>> list(bints([0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1]))
+  [0, 255]
+  >>> list(bints([1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1]))
+  [128, 1]
+  >>> list(bints([1]))
+  Traceback (most recent call last):
+    ...
+  ValueError: undone bitgroup remained
+  """
+  if not hasattr(b, '__next__'):
+    b = iter(b)
+  bits = [None] * 8
+  for bits in chunked_iter(b, 8, fill=None):
+    if bits[-1] is None:
+      raise ValueError('undone bitgroup remained')
+    yield sum(bit*2**(7-i) for i, bit in enumerate(bits))
+
+
+def bstr(
+    b: typing.Iterable[int],
+    groupsize: typing.Union[None, int] = 8,
+    *,
+    bitchars: typing.Union[None, str] = None,
+    space = ' ',
+  ) -> str:
+  """
+  Generate bitdigit charactes for the given iterable of bits
+  (integers of range 0--1). Note that the iterable will be fully
+  consumed.
+
+  If groupsize parameter is a positive integer then the bits are
+  going to get grouped into groups of that sizes. From the
+  second and subsequent groups, each substring gets prepended
+  with the space string.
+
+  If there is an undone group remained at the end then a
+  ValueError gets raised.
+
+  If groupsize is falsy then no groups/check are made.
+
+  >>> bstr([1,0,0,0,1,1,1,0,1,0,1,0,0,0,0,0])
+  'XoooXXXo XoXooooo'
+  >>> bstr([1,0,0,0,1,1,1,0,1,0,1,0,0,0,0,0], space=' | ')
+  'XoooXXXo | XoXooooo'
+  >>> bstr([1,0,0,0,1,1,1,0,1,0,1])
+  Traceback (most recent call last):
+    ...
+  ValueError: undone bitgroup remained
+  >>> bstr([1,0,0,0,1,1,1,0,1,0,1], None)
+  'XoooXXXoXoX'
+  >>> bstr([1,0,0,0,1,1], 3)
+  'Xoo oXX'
+  >>> bstr([1,0,0,0,1,1], 2)
+  'Xo oo XX'
+  """
+  gen = bchars(b, bitchars=bitchars)
+  if groupsize:
+    def subiterator(subgen):
+      for i, _bchars in enumerate(
+          chunked_iter(subgen, groupsize, fill=None)):
+        if _bchars[-1] is None:
+          raise ValueError('undone bitgroup remained')
+        s = ''.join(_bchars)
+        if i:
+          yield space + s
+        else:
+          yield s
+    gen = subiterator(gen)
+  return ''.join(gen)
 
 
 def ibits(
@@ -161,6 +237,7 @@ def sints(
   >>> bytes(sints('68 65 !! 6C 6F', strict=False))
   b'he'
   """
+  # TODO: make use of chunk_iter
   efs = 'expected a hexdigit instead of: {!r}'
   if strict:
     exc_cls = ValueError
