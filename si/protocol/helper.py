@@ -3,7 +3,7 @@ import io
 import string
 import typing
 
-from si.boltons.iterutils import chunked, chunked_iter
+from si.boltons.iterutils import chunked_iter
 
 
 BITCHARS = 'oX'
@@ -26,11 +26,7 @@ def bchars(
   '00001111'
   """
   bitchars = bitchars or BITCHARS
-  if not hasattr(b, '__next__'):
-    b = iter(b)
-  while True:
-    bit = next(b)
-    yield bitchars[bit]
+  yield from (bitchars[bit] for bit in b)
 
 
 def bints(
@@ -53,9 +49,6 @@ def bints(
     ...
   ValueError: undone bitgroup remained
   """
-  if not hasattr(b, '__next__'):
-    b = iter(b)
-  bits = [None] * 8
   for bits in chunked_iter(b, 8, fill=None):
     if bits[-1] is None:
       raise ValueError('undone bitgroup remained')
@@ -139,8 +132,6 @@ def ibits(
 
 def ihex(
     i: typing.Iterable[int],
-    *,
-    space: str = ' ',
   ) -> str:
   """
   Generate hexadecimal strings from the given iterable that
@@ -152,11 +143,8 @@ def ihex(
   >>> ' '.join(ihex(b'hello world'))
   '68 65 6C 6C 6F 20 77 6F 72 6C 64'
   """
-  if not hasattr(i, '__next__'):
-    i = iter(i)
-  while True:
-    v = next(i)
-    yield '{:0>2X}'.format(v)
+  yield from ('{:0>2X}'.format(x) for x in iter(i))
+
 
 
 def sbits(
@@ -164,7 +152,6 @@ def sbits(
     *,
     bitchars: typing.Union[None, str] = None,
     ignored: str = ' _|',
-    strict: bool = False,
   ) -> typing.Iterator[int]:
   """
   Generate bit integers from the given iterable that should
@@ -184,33 +171,23 @@ def sbits(
   >>> list(sbits('XooX | ooXo'))
   [1, 0, 0, 1, 0, 0, 1, 0]
   >>> list(sbits('XooX & ooXo'))
-  [1, 0, 0, 1]
-  >>> list(sbits('XooX & ooXo', strict=True))
   Traceback (most recent call last):
     ...
   ValueError: expected a bitdigit (oX) instead of: '&'
   """
   bitchars = bitchars or BITCHARS
   efs = 'expected a bitdigit ({}) instead of: {!r}'
-  if strict:
-    exc_cls = ValueError
-  else:
-    exc_cls = StopIteration
-  for chunk in s:
-    for c in chunk:
-      if c in ignored:
-        continue
-      elif c not in bitchars:
-        raise exc_cls(efs.format(bitchars, c))
-      else:
-        yield bitchars.index(c)
+  for c in (c for e in s for c in e if c not in ignored):
+    try:
+      yield bitchars.index(c)
+    except ValueError:
+      raise ValueError(efs.format(bitchars, c))
 
 
 def sints(
     s: typing.Iterable[str],
     *,
     ignored: str = ' _|',
-    strict: bool = True,
   ) -> typing.Iterator[int]:
   """
   Generate integers from the given iterable that should yield
@@ -220,12 +197,6 @@ def sints(
   vertical bar. This can be customized with the ignored
   parameter.
 
-  Iteration ends immediatelly if an invalid character is
-  encountered. If strict is True then a ValueError gets raised.
-
-  If itereation ends but the last hexdigit ends up without a
-  pair then a ValueError gets raised.
-
   >>> list(sints(['01', '40', '64', 'FF']))
   [1, 64, 100, 255]
   >>> bytes(sints('68 65 6C 6C 6F 20 77 6F 72 6C 64'))
@@ -233,39 +204,19 @@ def sints(
   >>> bytes(sints('68 65 !! 6C 6F 20 77 6F 72 6C 64'))
   Traceback (most recent call last):
     ...
-  ValueError: expected a hexdigit instead of: '!'
-  >>> bytes(sints('68 65 !! 6C 6F', strict=False))
-  b'he'
+  ValueError: invalid literal for int() with base 16: '!!'
+  >>> bytes(sints('68 65 5'))
+  Traceback (most recent call last):
+    ...
+  ValueError: last character without pair: '5'
   """
-  # TODO: make use of chunk_iter
-  efs = 'expected a hexdigit instead of: {!r}'
-  if strict:
-    exc_cls = ValueError
-  else:
-    exc_cls = StopIteration
-  error = None
-  first_c = ''
-  for chunk in s:
-    for c in chunk:
-      if c in ignored:
-        continue
-      elif c not in string.hexdigits:
-        error = exc_cls(efs.format(c))
-        break
-      elif not first_c:
-        first_c = c
-      else:
-        yield int(first_c + c, 16)
-        first_c = ''
-    if error:
-      break
-  if first_c:
-    efs = 'last character without pair: {!r}'
-    raise ValueError(efs.format(first_c))
-  elif error:
-    raise error
-
-
+  for chunk in chunked_iter(
+      (c for e in s for c in e if c not in ignored),
+      2, fill=None):
+    if chunk[-1] is None:
+      efs = 'last character without pair: {!r}'
+      raise ValueError(efs.format(chunk[0]))
+    yield int(''.join(chunk), 16)
 
 
 
