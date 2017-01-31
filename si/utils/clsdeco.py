@@ -1,5 +1,5 @@
 import enum
-import functools
+from functools import wraps
 
 
 def enum_defined(enumeration: enum.Enum):
@@ -11,7 +11,7 @@ def enum_defined(enumeration: enum.Enum):
   """
   def wrapped_decorator(cls):
     original_init = cls.__init__
-    @functools.wraps(cls.__init__)
+    @wraps(cls.__init__)
     def new_init(self, *args, **kwgs):
       original_init(self, *args[1:], **kwgs)
       self._enum = enumeration(self)
