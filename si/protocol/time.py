@@ -25,12 +25,13 @@ class DayOfWeekBits(bytes2.Bits):
 
   @classmethod
   def default(cls) -> 'cls':
-    return cls((0b111,))
+    return cls((0b111,), _from=False, _check_octets=False)
 
   @classmethod
   @default_if_none
   def from_val(cls,
       val: typing.Union[_common.DayOfWeek, str, int],
+      **kwgs
     ) -> 'cls':
     """
     Create a DayOfWeekBits instance from the given value
@@ -45,7 +46,8 @@ class DayOfWeekBits(bytes2.Bits):
       v = [val.value]
     elif isinstance(val, str):
       v = [_common.DayOfWeek[val.title()].value]
-    return cls(v, _from=False)
+    kwgs['_from'] = False
+    return cls(v, **kwgs)
 
   def isoweekday(self) -> int:
     """"
@@ -78,16 +80,17 @@ class FourWeekCounterRelativeBits(bytes2.Bits):
 
   @classmethod
   def default(cls) -> 'cls':
-    return cls((0b00,))
+    return cls((0b00,), _from=False, _check_octets=False)
 
   @classmethod
   @default_if_none
-  def from_val(cls, val: int) -> 'cls':
+  def from_val(cls, val: int, **kwgs) -> 'cls':
     """
     Create a FourWeekCounterRelativeBits instance from the given
     integer
     """
-    return cls([val], _from=False)
+    kwgs['_from'] = False
+    return cls([val], **kwgs)
 
   def val(self) -> int:
     "Return the four week counter relative integer value"
@@ -107,12 +110,13 @@ class HalfDayBit(bytes2.Bits):
 
   @classmethod
   def default(cls) -> 'cls':
-    return cls((0b0,))
+    return cls((0b0,), _from=False, _check_octets=False)
 
   @classmethod
   @default_if_none
   def from_val(cls,
       val: typing.Union[_common.DayOfWeek, str, int],
+      **kwgs
     ) -> 'cls':
     """
     Create a HalfDayBit instance from the given value
@@ -127,18 +131,12 @@ class HalfDayBit(bytes2.Bits):
     elif isinstance(val, str):
       normval = val.lower().replace('.','').replace(' ', '')
       v = [_common.HalfDay[normval].value]
-    return cls(v, _from=False)
+    kwgs['_from'] = False
+    return cls(v, **kwgs)
 
   def val(self) -> _common.HalfDay:
     "Return the corresponding si.HalfDay enumeration"
     return _common.HalfDay(int.from_bytes(self, 'big'))
-
-
-class TD_Parts(typing.NamedTuple):
-  extra_bits: bytes
-  four_week_counter_relative: FourWeekCounterRelativeBits
-  day_of_week: DayOfWeekBits
-  half_day: HalfDayBit
 
 
 class TDByte(bytes2.Container):

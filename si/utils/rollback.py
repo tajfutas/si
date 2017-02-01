@@ -54,9 +54,20 @@ class Rollbackable:
   def cached_behind(self):
     """
     Length of the cache behind current position.
+    Alias of cache_index.
 
     If equals cached then the next value will be taken from
     the wrapped iterable.
+    """
+    return self._cache_index
+
+  @property
+  def cache_index(self):
+    """
+    Current cache index value.
+
+    If saved, later it can be used to get back to save time
+    position with rollback_to().
     """
     return self._cache_index
 
@@ -128,11 +139,20 @@ class Rollbackable:
     cache.
     """
     if size is None:
-      self._cache_index = 0
+      self.rollback_to(0)
     elif not (0 <= size <= self.cached_behind):
       raise ValueError('expected 0 <= size <= cached_behind')
     else:
       self._cache_index -= size
+
+  def rollback_to(self,
+      cache_index_: int
+    ):
+    "Rollback to the given cache index."
+    if self.cached < cache_index_:
+      raise ValueError('given index is larger than cache size')
+    else:
+      self._cache_index = cache_index_
 
 
 class RollbackableBytesMixin:

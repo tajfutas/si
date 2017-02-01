@@ -9,6 +9,7 @@ from . import rollback as _rollback
 
 
 class BaseBytes(bytes):
+  _FROM_ORDER = ('val',)
   _OCTETS = NotImplemented
 
   def __new__(cls, *args,
@@ -19,31 +20,30 @@ class BaseBytes(bytes):
       **kwgs
     ) -> 'cls':
     inst = None
-    if (_from in (None, True, 'val')
-        and hasattr(cls, 'from_val')):
-      try:
-        inst = cls.from_val(*args, **kwgs)
-      except Exception as e:
-        if _from is not None:
+    for name in cls._FROM_ORDER:
+      attr_name = 'from_{}'.format(name)
+      if (inst is None
+          and _from in (None, True, name)
+          and hasattr(cls, attr_name)):
+        try:
+          inst = getattr(cls, attr_name)(*args,
+              _check_octets = _check_octets,
+              _octets = _octets,
+              **kwgs)
+        except (ValueError, TypeError) as e:
           _from_exc = e
-      else:
-        _from_exc = None
-    if (inst is None
-        and _from in (None, True, 'str')
-        and hasattr(cls, 'from_str')):
-      try:
-        inst = cls.from_str(*args, **kwgs)
-      except Exception as e:
-        if _from is not None:
-          _from_exc = e
-      else:
-        _from_exc = None
-    if _from_exc:
+        #except:
+        #  raise
+        #except (ValueError, TypeError, AttributeError) as e:
+        #  _from_exc = e
+        else:
+          _from_exc = None
+    if _from is not None and _from_exc:
       raise _from_exc
     if inst is None:
       inst = super().__new__(cls, *args, **kwgs)
     if _octets:
-      if cls._OCTETS != ...:
+      if cls._OCTETS is not None:
         efs = ('{}: attempt to set instance octets for a fixed '
             'size data')
         raise ValueError(efs.format(cls.__name__))
@@ -56,11 +56,70 @@ class BaseBytes(bytes):
     return '{}({})'.format(self.__class__.__name__,
         super().__repr__())
 
+  def __str__(self):
+    return _bconv.ints2str(self)
+
+  @classmethod
+  def from_ints(cls,
+      i: typing.Iterable[int],
+      **kwgs
+    ) -> 'cls':
+    """
+    Create an instance from the given iterable of integers of
+    range 0--255.
+    """
+    exp_num_bytes, exp_num_bits = divmod(cls._OCTETS, 8)
+    exp_len = exp_num_bytes + bool(exp_num_bits)
+    iter_i = iter(i)
+    ints = [next(iter_i) for _ in range(exp_len)]
+    if len(ints) != exp_len:
+      efs = 'expected number of integers was {}; got {}'
+      raise ValueError(efs.format(exp_len, len(ints)))
+    kwgs['_from'] = False
+    return cls(ints, **kwgs)
+
+  @classmethod
+  def from_str(cls,
+      s: typing.Iterable[str],
+      *,
+      ignored: str = ' _|',
+      **kwgs
+    ) -> 'cls':
+    """
+    Create an instance from an iterable that should yield
+    character strings of hexdigit pairs.
+
+    See si.utils.bconv.str2bytes()
+    """
+    exp_num_bytes, exp_num_bits = divmod(cls._OCTETS, 8)
+    exp_len = exp_num_bytes + bool(exp_num_bits)
+    exp_len *= 2  # pairs of hexdigits per byte
+    iter_s = iter(s)
+    ints = [next(iter_s) for _ in range(exp_len)]
+    if len(ints) != exp_len:
+      efs = 'expected number of hexdigits was {}; got {}'
+      raise ValueError(efs.format(exp_len, len(ints)))
+    kwgs['_from'] = False
+    return cls(_bconv.str2ints(ints, ignored=ignored), **kwgs)
+
+  @classmethod
+  def from_val(cls,
+      val: typing.Any,
+    ) -> 'cls':
+    """
+    Create an instance from the given value
+
+    Should be defined by subclasses of particular structures.
+    """
+    es = ('should be defined by subclasses of particular '
+        'structures')
+    raise NotImplementedError(es)
+
   @property
   def octets(self) -> int:
     "Size in bits"
     if self._OCTETS == NotImplemented:
-      efs = '{}: expected an explicit or ... self._OCTETS'
+      efs = '{}: expected an explicit or None self._OCTETS'
       raise NotImplementedError(efs.format(
           self.__class__.__name__))
     elif self._OCTETS is None:
@@ -108,53 +167,6 @@ class Bytes(BaseBytes):
       raise ValueError(efs.format(self.__class__.__name__,
           exp_num_bytes, len(self)))
 
-  def __str__(self):
-    return bytes2str(self)
-
-  @classmethod
-  def from_ints(cls,
-      i: typing.Iterable[int],
-      **kwgs
-    ) -> 'cls':
-    """
-    Create an instance from the given iterable of integers of
-    range 0--255.
-    """
-    exp_len = cls._OCTETS // 8
-    iter_i = iter(i)
-    ints = [next(iter_i) for _ in range(exp_len)]
-    if len(ints) != exp_len:
-      efs = 'expected number of integers was {}; got {}'
-      raise ValueError(efs.format(exp_len, len(ints)))
-    kwgs['_from'] = False
-    return cls(ints, **kwgs)
-
-  @classmethod
-  def from_str(cls,
-      s: typing.Iterable[str],
-      *,
-      ignored: str = ' _|',
-      **kwgs
-    ) -> 'cls':
-    """
-    Create an instance from an iterable that should yield
-    character strings of hexdigit pairs.
-
-    Default ignored charaters are whitespace, underscore and
-    vertical bar. This can be customized with the ignored
-    parameter.
-
-    See si.utils.bconv.str2bytes()
-    """
-    exp_len = 2 * cls._OCTETS // 8
-    iter_s = iter(s)
-    ints = [next(iter_s) for _ in range(exp_len)]
-    if len(ints) != exp_len:
-      efs = 'expected number of hexdigits was {}; got {}'
-      raise ValueError(efs.format(exp_len, len(ints)))
-    kwgs['_from'] = False
-    return cls(_bconv.str2ints(ints, ignored=ignored), **kwgs)
-
   def _check_octets(self) -> typing.Tuple[int, int, int]:
     "See BaseBytes._check_octets()"
     t_ = super()._check_octets()
@@ -169,30 +181,52 @@ class Bytes(BaseBytes):
 class Bits(BaseBytes):
 
   def __str__(self):
-    return bits2str(self, self.octets)
+    return _bconv.bits2str(_bconv.ints2bits(self))
+
+  @classmethod
+  def from_bits(cls,
+      b: typing.Iterable[int],
+      **kwgs
+    ) -> 'cls':
+    """
+    Create an instance from the given iterable of bits
+    (integers of range 0--1).
+    """
+    exp_len = cls._OCTETS
+    iter_b = iter(b)
+    bits = [next(iter_b) for _ in range(exp_len)]
+    if len(bits) != exp_len:
+      efs = 'expected number of bits was {}; got {}'
+      raise ValueError(efs.format(exp_len, len(bits)))
+    exp_num_bytes, exp_num_bits = divmod(exp_len, 8)
+    num_pad_bits = 8 - exp_num_bits
+    ints = _bconv.bits2ints([0] * num_pad_bits + bits)
+    return cls.from_ints(ints)
 
   @classmethod
   def from_str(cls,
-      s: typing.Union[str, typing.TextIO]
+      s: typing.Iterable[str],
+      *,
+      bitchars: typing.Union[None, str] = None,
+      ignored: str = ' _|',
     ) -> 'cls':
     """
-    Create an instance from a string or a stream
+    Create an instance from the given iterable that should
+    yield character strings of bitdigits.
 
-    Input must contain case "o" and "X" characters only. Spaces
-    are ignored.
-
-    See si.protocol._helper.str2bits()
+    See si.utils.bconv.str2bits()
     """
-    return cls(str2bits(s, octets=cls._OCTETS), _from=False)
+    b = _bconv.str2bits(s, bitchars=bitchars, ignored=ignored)
+    return cls.from_bits(b)
 
   def _check_octets(self) -> typing.Tuple[int, int, int]:
     "See BaseBytes._check_octets()"
     t_ = super()._check_octets()
     num_bytes, exp_num_bytes, exp_num_bits = t_
     if self[0] & 2**8-2**exp_num_bits:
-      efs = '{}: expected {} zero bits in the first byte'
+      efs = '{}: first value expected to be less than {}'
       raise ValueError(efs.format(self.__class__.__name__,
-          8-exp_num_bits))
+          2**exp_num_bits))
     return num_bytes, exp_num_bytes, exp_num_bits
 
 
@@ -237,9 +271,8 @@ def PadBits(octets):
 
 
 class Container(Bytes):
-
+  _FROM_ORDER = ('items',)
   _OCTETS = None
-
   _ITEMS = ()
 
   @staticmethod
@@ -288,28 +321,17 @@ class Container(Bytes):
       _items: typing.Union[None, _MappingProxyType] = None,
       **kwgs
     ) -> 'cls':
-    inst = None
-    if (_from in (None, True, 'items')
-        and hasattr(cls, 'from_items')):
-      try:
-        inst = cls.from_items(*args, **kwgs)
-      except Exception as e:
-        if _from is not None:
-          _from_exc = e
-      else:
-        _from_exc = None
-    if inst is None:
-      inst = super().__new__(cls, *args,
-          _check_octets = False,
-          _from = _from,
-          _from_exc = _from_exc,
-          _octets = _octets,
-          **kwgs)
+    inst = super().__new__(cls, *args,
+        _check_octets = False,
+        _from = _from,
+        _from_exc = _from_exc,
+        _octets = _octets,
+        **kwgs)
     if _items:
       inst._items = _items
     elif not hasattr(inst, '_items'):
       inst._items = inst._get_items()
-    if cls._OCTETS == ... and not hasattr(inst, '_octets'):
+    if cls._OCTETS is None and not hasattr(inst, '_octets'):
       inst._octets = inst._get_octets()
     elif _check_octets:
       inst._check_octets()
@@ -321,6 +343,8 @@ class Container(Bytes):
           typing.Union[None, BaseBytes]]] = None,
       *,
       _from_val: bool = False,
+      _check_octets: bool = True,
+      _octets: typing.Union[None, int] = None,
       **itms
     ) -> 'cls':
     "Create an instance from items" # TODO more docstring
@@ -360,7 +384,8 @@ class Container(Bytes):
       _items[item_name] = item_inst
     arg = cls._bytes_from_items(_items)
     _items = _MappingProxyType(_items)
-    return cls(arg, _from=False, _items=_items)
+    return cls(arg, _from=False, _items=_items,
+        _check_octets=_check_octets, _octets=_octets)
 
   @classmethod
   def from_val(cls,
@@ -384,14 +409,17 @@ class Container(Bytes):
   def _check_octets(self) -> typing.Tuple[int, int, int]:
     "See BaseBytes._check_octets()"
     t_ = super()._check_octets()
-    num_bytes, exp_num_bytes, exp_num_bits = t_
-    octets = 8 * exp_num_bytes + exp_num_bits
-    exp_octets = self._get_octets()
-    if octets != exp_octets:
-      efs = '{}: invalid octets (expected {}): {}'
-      raise ValueError(efs.format(self.__class__.__name__,
-          exp_octets, octets))
-    return num_bytes, exp_num_bytes, exp_num_bits
+    if self.__class__._OCTETS is not None:
+      return t_
+    else:
+      num_bytes, exp_num_bytes, exp_num_bits = t_
+      octets = 8 * exp_num_bytes + exp_num_bits
+      exp_octets = self._get_octets()
+      if octets != exp_octets:
+        efs = '{}: invalid octets (expected {}): {}'
+        raise ValueError(efs.format(self.__class__.__name__,
+            exp_octets, octets))
+      return num_bytes, exp_num_bytes, exp_num_bits
 
   def _get_items(self):
     i = 0

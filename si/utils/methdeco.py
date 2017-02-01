@@ -30,9 +30,9 @@ class classproperty:
 def default_if_none(m):
   # TODO: improve, docstring
   @_wraps(m)
-  def wrapped(cls, val):
+  def wrapped(cls, val, *args, **kwgs):
     if val is None:
       return cls.default()
     else:
-      return m(cls, val)
+      return m(cls, val, *args, **kwgs)
   return wrapped
