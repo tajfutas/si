@@ -1,16 +1,35 @@
+"""
+This module provides base and utility classes which are all
+subclasses of builtin bytes and which are do an automatic
+serialization and deserialization of the DictBytes they represent.
+
+Base classes:
+  * Bytes
+  * Bits
+  * DictBytes
+
+Utility classes:
+  * PadBit
+  * PadBits
+"""
+
 import collections as _collections
 import io as _io
 from types import MappingProxyType as _MappingProxyType
 import typing
 
-# TODO !!!
 from . import bconv as _bconv
-from . import rollback as _rollback
+
+
+
+################################################################
+# BASE CLASSES                                                 #
+################################################################
 
 
 class BaseBytes(bytes):
   """
-  Base class for bytes2 objects. Subclass of bytes.
+  Base class for bytes2 DictBytess. Subclass of bytes.
   """
   # TODO: more docstring
   _FROM_ORDER = ('val',)
@@ -24,21 +43,20 @@ class BaseBytes(bytes):
       **kwgs
     ) -> 'cls':
     """
-    Attention!
+    Create a new instance.
 
-    Never
+    Attention! If first argument is a bytes-like DictBytes (has
+    'decode' method) then instance creation is delegated to
+    builtin bytes. Otherwise it is treated as the serialized
+    DictBytes the data represents.
     """
-    # TODO: more docstring
     inst = None
     first_arg = args[0] if args else None
     if first_arg is None:
       return cls.default()
-    elif (
-        _from is not False
-        and not hasattr(first_arg, 'decode')
-        # ^ is not bytes-like
-        and not hasattr(first_arg, '__bytes__')
-      ):
+    elif hasattr(first_arg, 'decode'): # is bytes-like
+      _from = False
+    if _from is not False:
       for name in cls._FROM_ORDER:
         attr_name = 'from_{}'.format(name)
         if (inst is None
@@ -77,13 +95,11 @@ class BaseBytes(bytes):
   @classmethod
   def default(cls) -> 'cls':
     """
-    Create a default instance
+    Create a default instance or raise TypeError
 
     Should be defined by subclasses of particular structures.
     """
-    es = ('should be defined by subclasses of particular '
-        'structures')
-    raise NotImplementedError(es)
+    raise TypeError('default not defined')
 
   @classmethod
   def from_ints(cls,
@@ -129,17 +145,13 @@ class BaseBytes(bytes):
     return cls(_bconv.str2ints(ints, ignored=ignored), **kwgs)
 
   @classmethod
-  def from_val(cls,
-      val: typing.Any,
-    ) -> 'cls':
+  def from_val(cls, val: typing.Any) -> 'cls':
     """
-    Create an instance from the given value
+    Create an instance from the given value.
 
-    Should be defined by subclasses of particular structures.
+    Must be defined by subclasses of particular structures.
     """
-    es = ('should be defined by subclasses of particular '
-        'structures')
-    raise NotImplementedError(es)
+    raise NotImplementedError('must be defined by subclasses')
 
   @property
   def octets(self) -> int:
@@ -258,7 +270,8 @@ class Bits(BaseBytes):
     return num_bytes, exp_num_bytes, exp_num_bits
 
 
-class Container(Bytes):
+class DictBytes(Bytes):
+  # TODO: docstring
   _FROM_ORDER = ('items',)
   _OCTETS = None
   _ITEMS = ()
@@ -457,6 +470,12 @@ class Container(Bytes):
         for name, item in self.items.items())
 
 
+
+################################################################
+# UTILITY CLASSES                                              #
+################################################################
+
+
 class PadBit(Bits):
   # TODO: docstring
 
@@ -495,5 +514,6 @@ class PadBit(Bits):
 def PadBits(octets):
   # TODO: docstring
   return type('PadBits', (PadBit,), dict(_OCTETS=octets))
+
 
 del typing

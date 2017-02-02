@@ -139,7 +139,7 @@ class HalfDayBit(bytes2.Bits):
     return _common.HalfDay(int.from_bytes(self, 'big'))
 
 
-class TDByte(bytes2.Container):
+class TDByte(bytes2.DictBytes):
   _OCTETS = 0o10
   _ITEMS = (
       ("pad", bytes2.PadBits(2)),
