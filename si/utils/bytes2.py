@@ -9,6 +9,10 @@ from . import rollback as _rollback
 
 
 class BaseBytes(bytes):
+  """
+  Base class for bytes2 objects. Subclass of bytes.
+  """
+  # TODO: more docstring
   _FROM_ORDER = ('val',)
   _OCTETS = NotImplemented
 
@@ -19,27 +23,38 @@ class BaseBytes(bytes):
       _octets: typing.Union[None, int] = None,
       **kwgs
     ) -> 'cls':
+    """
+    Attention!
+
+    Never
+    """
+    # TODO: more docstring
     inst = None
-    for name in cls._FROM_ORDER:
-      attr_name = 'from_{}'.format(name)
-      if (inst is None
-          and _from in (None, True, name)
-          and hasattr(cls, attr_name)):
-        try:
-          inst = getattr(cls, attr_name)(*args,
-              _check_octets = _check_octets,
-              _octets = _octets,
-              **kwgs)
-        except (ValueError, TypeError) as e:
-          _from_exc = e
-        #except:
-        #  raise
-        #except (ValueError, TypeError, AttributeError) as e:
-        #  _from_exc = e
-        else:
-          _from_exc = None
-    if _from is not None and _from_exc:
-      raise _from_exc
+    first_arg = args[0] if args else None
+    if first_arg is None:
+      return cls.default()
+    elif (
+        _from is not False
+        and not hasattr(first_arg, 'decode')
+        # ^ is not bytes-like
+        and not hasattr(first_arg, '__bytes__')
+      ):
+      for name in cls._FROM_ORDER:
+        attr_name = 'from_{}'.format(name)
+        if (inst is None
+            and _from in (None, True, name)
+            and hasattr(cls, attr_name)):
+          try:
+            inst = getattr(cls, attr_name)(*args,
+                _check_octets = _check_octets,
+                _octets = _octets,
+                **kwgs)
+          except (ValueError, TypeError) as e:
+            _from_exc = e
+          else:
+            _from_exc = None
+      if _from is not None and _from_exc:
+        raise _from_exc
     if inst is None:
       inst = super().__new__(cls, *args, **kwgs)
     if _octets:
@@ -58,6 +73,17 @@ class BaseBytes(bytes):
 
   def __str__(self):
     return _bconv.ints2str(self)
+
+  @classmethod
+  def default(cls) -> 'cls':
+    """
+    Create a default instance
+
+    Should be defined by subclasses of particular structures.
+    """
+    es = ('should be defined by subclasses of particular '
+        'structures')
+    raise NotImplementedError(es)
 
   @classmethod
   def from_ints(cls,
@@ -154,6 +180,7 @@ class BaseBytes(bytes):
 
 
 class Bytes(BaseBytes):
+  BITWISE, BYTEWISE = False, True
 
   def __init__(self, *args, **kwgs):
     super().__init__()
@@ -179,6 +206,7 @@ class Bytes(BaseBytes):
 
 
 class Bits(BaseBytes):
+  BITWISE, BYTEWISE = True, False
 
   def __str__(self):
     return _bconv.bits2str(_bconv.ints2bits(self))
@@ -338,6 +366,14 @@ class Container(Bytes):
     return inst
 
   @classmethod
+  def default(cls) -> 'cls':
+    """
+    Create a default instance
+    """
+    return cls.from_items([item_cls.default()
+        for (item_name, item_cls) in cls._ITEMS])
+
+  @classmethod
   def from_items(cls,
       _collection: typing.Union[None, typing.Collection[
           typing.Union[None, BaseBytes]]] = None,
@@ -422,10 +458,35 @@ class Container(Bytes):
       return num_bytes, exp_num_bytes, exp_num_bits
 
   def _get_items(self):
-    i = 0
+    _items = _collections.OrderedDict()
+    bitwise = False
+    o = 0
     for item_name, item_cls in self._ITEMS:
-      pass
-    return NotImplemented  # TODO
+      item_bitwise = item_cls.BITWISE
+      if bitwise and not item_bitwise:
+        aes = ('switching to bytewise: octets index must have '
+            'no remainder after divided by 8')
+        assert not o % 8, aes
+      bitwise = item_bitwise
+      o_num_bytes, o_num_bits = divmod(o, 8)
+      gen = self[o_num_bytes:]
+      if bitwise:
+        clsmeth_name = 'from_bits'
+        gen = _bconv.ints2bits(gen)
+        # throw away
+        for _ in range(o_num_bits):
+          next(gen)
+      else:
+        clsmeth_name = 'from_ints'
+      try:
+        item_inst = getattr(item_cls, clsmeth_name)(gen)
+      except StopIteration:
+        efs = '{}: not enough {}'
+        raise ValueError(efs.format(self.__class__.__name__,
+            'bits' if bitwise else 'bytes'))
+      _items[item_name] = item_inst
+      o += item_inst.octets
+    return _MappingProxyType(_items)
 
   def _get_octets(self):
     return sum((i.octets for i in self.items.values()))

@@ -257,12 +257,12 @@ def rollbackable(
   Factory function to wrap a string or bytes object, or a stream
   object of those types to a Rollbackable object.
   """
-  if hasattr(obj, 'read'):
-    if not hasattr(obj, 'encoding'):
+  if hasattr(obj, 'read'):  # is file-like
+    if not hasattr(obj, 'encoding'):  # is not string-like
       return RollbackableBytesRead(obj)
     else:
       return RollbackableRead(obj)
-  elif hasattr(obj, 'decode'):
+  elif hasattr(obj, 'decode'):  # is bytes-like
     return RollbackableBytes(obj)
   else:
     return Rollbackable(obj)
