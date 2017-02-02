@@ -21,7 +21,7 @@ class DayOfWeekBits(bytes2.Bits):
   # PCPROG5 (pp. 17, 19)
   # SPORTident 9e291aa \DayOfWeek.cs
 
-  _OCTETS = 0o3
+  _octets = 0o3
 
   @classmethod
   def default(cls) -> 'cls':
@@ -29,8 +29,8 @@ class DayOfWeekBits(bytes2.Bits):
 
   @classmethod
   @default_if_none
-  def from_val(cls,
-      val: typing.Union[_common.DayOfWeek, str, int],
+  def from_obj(cls,
+      obj: typing.Union[None, _common.DayOfWeek, str, int],
       **kwgs
     ) -> 'cls':
     """
@@ -41,13 +41,13 @@ class DayOfWeekBits(bytes2.Bits):
     matching the SportIdent day of week standard
     (Sunday == 0, Monday == 1, ..., Saturday == 6).
     """
-    v = [val]
-    if hasattr(val, 'value'):
-      v = [val.value]
-    elif isinstance(val, str):
-      v = [_common.DayOfWeek[val.title()].value]
+    o = [obj]
+    if hasattr(obj, 'value'):
+      o = [obj.value]
+    elif isinstance(obj, str):
+      o = [_common.DayOfWeek[obj.title()].value]
     kwgs['_from'] = False
-    return cls(v, **kwgs)
+    return cls(o, **kwgs)
 
   def isoweekday(self) -> int:
     """"
@@ -63,7 +63,7 @@ class DayOfWeekBits(bytes2.Bits):
     else:
       return (int_value if 0 < int_value else 7)
 
-  def val(self) -> _common.DayOfWeek:
+  def obj(self) -> _common.DayOfWeek:
     "Return the corresponding si.DayOfWeek enumeration"
     return _common.DayOfWeek(int.from_bytes(self, 'big'))
 
@@ -76,7 +76,7 @@ class FourWeekCounterRelativeBits(bytes2.Bits):
   # References:
   # PCPROG5 (pp. 17, 19)
 
-  _OCTETS = 0o2
+  _octets = 0o2
 
   @classmethod
   def default(cls) -> 'cls':
@@ -84,15 +84,17 @@ class FourWeekCounterRelativeBits(bytes2.Bits):
 
   @classmethod
   @default_if_none
-  def from_val(cls, val: int, **kwgs) -> 'cls':
+  def from_obj(cls,
+      obj: typing.Union[None, int],
+      **kwgs) -> 'cls':
     """
     Create a FourWeekCounterRelativeBits instance from the given
     integer
     """
     kwgs['_from'] = False
-    return cls([val], **kwgs)
+    return cls([obj], **kwgs)
 
-  def val(self) -> int:
+  def obj(self) -> int:
     "Return the four week counter relative integer value"
     return int.from_bytes(self, 'big')
 
@@ -106,7 +108,7 @@ class HalfDayBit(bytes2.Bits):
   # References:
   # PCPROG5 (pp. 17, 19)
 
-  _OCTETS = 0o1
+  _octets = 0o1
 
   @classmethod
   def default(cls) -> 'cls':
@@ -114,8 +116,8 @@ class HalfDayBit(bytes2.Bits):
 
   @classmethod
   @default_if_none
-  def from_val(cls,
-      val: typing.Union[_common.DayOfWeek, str, int],
+  def from_obj(cls,
+      obj: typing.Union[None, _common.DayOfWeek, str, int],
       **kwgs
     ) -> 'cls':
     """
@@ -125,28 +127,28 @@ class HalfDayBit(bytes2.Bits):
     period name string ("am", "PM", "a.m.", ...) or an integer
     (0 - am; 1 - pm).
     """
-    v = [val]
-    if hasattr(val, 'value'):
-      v = [val.value]
-    elif isinstance(val, str):
-      normval = val.lower().replace('.','').replace(' ', '')
-      v = [_common.HalfDay[normval].value]
+    o = [obj]
+    if hasattr(obj, 'value'):
+      o = [obj.value]
+    elif isinstance(obj, str):
+      s_normal = obj.lower().replace('.','').replace(' ', '')
+      o = [_common.HalfDay[s_normal].value]
     kwgs['_from'] = False
-    return cls(v, **kwgs)
+    return cls(o, **kwgs)
 
-  def val(self) -> _common.HalfDay:
+  def obj(self) -> _common.HalfDay:
     "Return the corresponding si.HalfDay enumeration"
     return _common.HalfDay(int.from_bytes(self, 'big'))
 
 
 class TDByte(bytes2.DictBytes):
-  _OCTETS = 0o10
-  _ITEMS = (
+  _octets = 0o10
+  _schema = bytes2.DictBytes._schema_from_tuple((
       ("pad", bytes2.PadBits(2)),
       ("fourweekcrel", FourWeekCounterRelativeBits),
       ("dayofweek", DayOfWeekBits),
       ("halfday", HalfDayBit),
-    )
+    ))
 
 
 del typing

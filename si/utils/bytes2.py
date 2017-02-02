@@ -1,7 +1,7 @@
 """
 This module provides base and utility classes which are all
 subclasses of builtin bytes and which are do an automatic
-serialization and deserialization of the DictBytes they represent.
+serialization and deserialization of the object they represent.
 
 Base classes:
   * Bytes
@@ -29,11 +29,21 @@ from . import bconv as _bconv
 
 class BaseBytes(bytes):
   """
-  Base class for bytes2 DictBytess. Subclass of bytes.
+  Base class of bytes2 objects. Subclass of bytes.
+
+  Subclasses should define the following
+  * class constants:
+    - '_octets': integer or None
+      If integer then it is the size of the data in bits.
+      None indicates variable size which gets determined during
+      instatntiation.
+  * class methods:
+    - 'from_obj(cls, obj)'
   """
   # TODO: more docstring
-  _FROM_ORDER = ('val',)
-  _OCTETS = NotImplemented
+  _FROM_ORDER = ('obj',)  # type: typing.Tuple[str]
+
+  _octets = NotImplemented  # type: typing.Union[None, int]
 
   def __new__(cls, *args,
       _check_octets: bool = True,
@@ -45,14 +55,14 @@ class BaseBytes(bytes):
     """
     Create a new instance.
 
-    Attention! If first argument is a bytes-like DictBytes (has
+    Attention! If first argument is a bytes-like object (has
     'decode' method) then instance creation is delegated to
     builtin bytes. Otherwise it is treated as the serialized
-    DictBytes the data represents.
+    object the data represents.
     """
     inst = None
     first_arg = args[0] if args else None
-    if first_arg is None:
+    if first_arg is None and not kwgs:
       return cls.default()
     elif hasattr(first_arg, 'decode'): # is bytes-like
       _from = False
@@ -76,7 +86,7 @@ class BaseBytes(bytes):
     if inst is None:
       inst = super().__new__(cls, *args, **kwgs)
     if _octets:
-      if cls._OCTETS is not None:
+      if cls._octets is not None:
         efs = ('{}: attempt to set instance octets for a fixed '
             'size data')
         raise ValueError(efs.format(cls.__name__))
@@ -110,7 +120,7 @@ class BaseBytes(bytes):
     Create an instance from the given iterable of integers of
     range 0--255.
     """
-    exp_num_bytes, exp_num_bits = divmod(cls._OCTETS, 8)
+    exp_num_bytes, exp_num_bits = divmod(cls._octets, 8)
     exp_len = exp_num_bytes + bool(exp_num_bits)
     iter_i = iter(i)
     ints = [next(iter_i) for _ in range(exp_len)]
@@ -133,7 +143,7 @@ class BaseBytes(bytes):
 
     See si.utils.bconv.str2bytes()
     """
-    exp_num_bytes, exp_num_bits = divmod(cls._OCTETS, 8)
+    exp_num_bytes, exp_num_bits = divmod(cls._octets, 8)
     exp_len = exp_num_bytes + bool(exp_num_bits)
     exp_len *= 2  # pairs of hexdigits per byte
     iter_s = iter(s)
@@ -145,9 +155,9 @@ class BaseBytes(bytes):
     return cls(_bconv.str2ints(ints, ignored=ignored), **kwgs)
 
   @classmethod
-  def from_val(cls, val: typing.Any) -> 'cls':
+  def from_obj(cls, obj: typing.Any) -> 'cls':
     """
-    Create an instance from the given value.
+    Create an instance from the given object.
 
     Must be defined by subclasses of particular structures.
     """
@@ -156,21 +166,21 @@ class BaseBytes(bytes):
   @property
   def octets(self) -> int:
     "Size in bits"
-    if self._OCTETS == NotImplemented:
-      efs = '{}: expected an explicit or None self._OCTETS'
+    if self._octets == NotImplemented:
+      efs = '{}: expected an explicit or None self._octets'
       raise NotImplementedError(efs.format(
           self.__class__.__name__))
-    elif self._OCTETS is None:
+    elif self._octets is None:
       return self._octets
     else:
-      return self._OCTETS
+      return self._octets
 
   def _check_octets(self) -> typing.Tuple[int, int, int]:
     """
     Check octets
 
     Called by __init__ and should raise
-    * RuntimeError if cls._OCTETS was given wrong,
+    * RuntimeError if cls._octets was given wrong,
     * ValueError if the size by the given value would be wrong.
 
     Return (num_bytes, exp_num_bytes, exp_num_bits) tuple, which
@@ -198,7 +208,7 @@ class Bytes(BaseBytes):
     super().__init__()
     exp_num_bytes, exp_num_bits = divmod(self.octets, 8)
     if exp_num_bits:
-      efs = ('{}: invalid cls._OCTETS for Bytes: modulo 8 ',
+      efs = ('{}: invalid cls._octets for Bytes: modulo 8 ',
           'should have been zero')
       raise RuntimeError(efs.format(self.__class__.__name__))
     if exp_num_bytes != len(self):
@@ -211,7 +221,7 @@ class Bytes(BaseBytes):
     t_ = super()._check_octets()
     num_bytes, exp_num_bytes, exp_num_bits = t_
     if exp_num_bits:
-      efs = ('{}: invalid cls._OCTETS for Bytes: modulo 8 ',
+      efs = ('{}: invalid cls._octets for Bytes: modulo 8 ',
           'should have been zero')
       raise RuntimeError(efs.format(self.__class__.__name__))
     return num_bytes, exp_num_bytes, exp_num_bits
@@ -232,7 +242,7 @@ class Bits(BaseBytes):
     Create an instance from the given iterable of bits
     (integers of range 0--1).
     """
-    exp_len = cls._OCTETS
+    exp_len = cls._octets
     iter_b = iter(b)
     bits = [next(iter_b) for _ in range(exp_len)]
     if len(bits) != exp_len:
@@ -273,8 +283,8 @@ class Bits(BaseBytes):
 class DictBytes(Bytes):
   # TODO: docstring
   _FROM_ORDER = ('items',)
-  _OCTETS = None
-  _ITEMS = ()
+  _octets = None
+  _schema = _MappingProxyType({})
 
   @staticmethod
   def _bytes_from_items(items):
@@ -314,6 +324,12 @@ class DictBytes(Bytes):
         raise ValueError('finished in bitwise mode')
     return bytes_
 
+  @staticmethod
+  def _schema_from_tuple(
+      t: typing.Tuple[typing.Tuple[str, type]]
+    ) -> _MappingProxyType:
+    return _MappingProxyType(_collections.OrderedDict(t))
+
   def __new__(cls, *args,
       _check_octets: bool = True,
       _from: typing.Union[None, bool, str] = None,
@@ -332,64 +348,62 @@ class DictBytes(Bytes):
       inst._items = _items
     elif not hasattr(inst, '_items'):
       inst._items = inst._get_items()
-    if cls._OCTETS is None and not hasattr(inst, '_octets'):
+    if cls._octets is None and not hasattr(inst, '_octets'):
       inst._octets = inst._get_octets()
     elif _check_octets:
       inst._check_octets()
     return inst
 
   @classmethod
+  def clskeys(cls) -> typing.Tuple[str]:
+    """
+    Return the keys of the representing object
+    """
+    return cls._schema.keys()
+
+  @classmethod
   def default(cls) -> 'cls':
     """
     Create a default instance
     """
-    return cls.from_items([item_cls.default()
-        for (item_name, item_cls) in cls._ITEMS])
+    return cls.from_items({item_name: item_cls.default()
+        for (item_name, item_cls) in cls._schema.items()})
 
   @classmethod
   def from_items(cls,
-      _collection: typing.Union[None, typing.Collection[
-          typing.Union[None, BaseBytes]]] = None,
+      _dict: typing.Union[None, dict] = None,
       *,
-      _from_val: bool = False,
+      _from_obj: bool = False,
       _check_octets: bool = True,
       _octets: typing.Union[None, int] = None,
       **itms
     ) -> 'cls':
     "Create an instance from items" # TODO more docstring
-    if _collection is None:
-      unknw_k = set(itms.keys()) - set(i[0] for i in cls._ITEMS)
+    if _dict is None:
+      unknw_k = set(itms.keys()) - set(cls._schema.keys())
       if unknw_k:
         efs = 'invalid key{}: {}'
-        raise AttributeError(efs.format(
+        raise KeyError(efs.format(
             ('s' if len(unknw_k) > 1 else ''),
             ', '.join('{!r}'.format(k)
                 for k in sorted(unknw_k))))
+      _dict = itms
     else:
       if itms:
-        efs = 'either collection of {} or {} keywords'
-        what = (('values', 'value') if _from_val
-            else ('items', 'item'))
-        raise AttributeError(efs.format(*what))
+        raise TypeError('eiher a dictionary or items')
     _items = _collections.OrderedDict()
-    for i, (item_name, item_cls) in enumerate(cls._ITEMS):
-      if _collection is not None:
-        v = _collection[i]
-      else:
-        v = itms.get(item_name)
-      if _from_val:
-        item_inst = item_cls.from_val(v)
-      elif v is None:
+    for item_name, item_cls in cls._schema.items():
+      item_obj = _dict.get(item_name)
+      if _from_obj:
+        item_inst = item_cls.from_obj(item_obj)
+      elif item_obj is None:
         try:
           item_inst = item_cls.default()
         except AttributeError:
-          efs = 'argument ({})  must be defined explicitely: {}'
-          raise TypeError(efs.format(i, item_name)) from None
+          efs = 'item must be defined explicitely: {}'
+          raise TypeError(efs.format(item_name)) from None
       else:
-        if type(v) == item_cls:
-          item_inst = v
-        else:
-          item_inst = item_cls(v)
+        item_inst = item_cls(item_obj)
       _items[item_name] = item_inst
     arg = cls._bytes_from_items(_items)
     _items = _MappingProxyType(_items)
@@ -397,13 +411,12 @@ class DictBytes(Bytes):
         _check_octets=_check_octets, _octets=_octets)
 
   @classmethod
-  def from_val(cls,
-      _collection: typing.Union[None, typing.Collection[
-          typing.Union[None, typing.Any]]] = None,
-      **vals
+  def from_obj(cls,
+      _dict: typing.Union[None, dict] = None,
+      **itms
     ) -> 'cls':
-    "Create an instance from values" # TODO more docstring
-    return cls.from_items(_collection, _from_val=True, **vals)
+    "Create an instance from a dictionary" # TODO more docstring
+    return cls.from_items(_dict, _from_obj=True, **itms)
 
   def __getitem__(self, item):
     if isinstance(item, str):
@@ -418,7 +431,7 @@ class DictBytes(Bytes):
   def _check_octets(self) -> typing.Tuple[int, int, int]:
     "See BaseBytes._check_octets()"
     t_ = super()._check_octets()
-    if self.__class__._OCTETS is not None:
+    if self.__class__._octets is not None:
       return t_
     else:
       num_bytes, exp_num_bytes, exp_num_bits = t_
@@ -434,7 +447,7 @@ class DictBytes(Bytes):
     _items = _collections.OrderedDict()
     bitwise = False
     o = 0
-    for item_name, item_cls in self._ITEMS:
+    for item_name, item_cls in self._schema.items():
       item_bitwise = item_cls.BITWISE
       if bitwise and not item_bitwise:
         aes = ('switching to bytewise: octets index must have '
@@ -464,9 +477,9 @@ class DictBytes(Bytes):
   def _get_octets(self):
     return sum((i.octets for i in self.items.values()))
 
-  def val(self):
-    return _collections.OrderedDict((name, (item.val()
-        if hasattr(item, 'val') else item))
+  def obj(self):
+    return _collections.OrderedDict((name, (item.obj()
+        if hasattr(item, 'obj') else item))
         for name, item in self.items.items())
 
 
@@ -479,41 +492,41 @@ class DictBytes(Bytes):
 class PadBit(Bits):
   # TODO: docstring
 
-  _OCTETS = 0o1
+  _octets = 0o1
 
   def __new__(cls, *args, **kwgs) -> 'cls':
     if not args:
-      num_bytes, num_bits = divmod(cls._OCTETS, 8)
+      num_bytes, num_bits = divmod(cls._octets, 8)
       num_bytes += bool(num_bits)
       args = bytes(num_bytes),
       kwgs['_from'] = False
     return super().__new__(cls, *args, **kwgs)
 
   @classmethod
-  def from_val(cls,
-      val: None = None,
+  def from_obj(cls,
+      obj: None = None,
     ) -> 'cls':
     """
     Return the instance
 
-    The val parameter must be None if given, otherwise
+    The obj parameter must be None if given, otherwise
     ValueError gets raised.
     """
-    if val is not None:
-      raise ValueError('val must be None')
+    if obj is not None:
+      raise ValueError('obj must be None')
     return cls()
 
   @classmethod
   def default(cls) -> 'cls':
     return cls()
 
-  def val(self) -> None:
+  def obj(self) -> None:
     return None
 
 
 def PadBits(octets):
   # TODO: docstring
-  return type('PadBits', (PadBit,), dict(_OCTETS=octets))
+  return type('PadBits', (PadBit,), dict(_octets=octets))
 
 
 del typing
