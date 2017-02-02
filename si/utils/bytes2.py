@@ -258,46 +258,6 @@ class Bits(BaseBytes):
     return num_bytes, exp_num_bytes, exp_num_bits
 
 
-class PadBit(Bits):
-  # TODO: docstring
-
-  _OCTETS = 0o1
-
-  def __new__(cls, *args, **kwgs) -> 'cls':
-    if not args:
-      num_bytes, num_bits = divmod(cls._OCTETS, 8)
-      num_bytes += bool(num_bits)
-      args = bytes(num_bytes),
-      kwgs['_from'] = False
-    return super().__new__(cls, *args, **kwgs)
-
-  @classmethod
-  def from_val(cls,
-      val: None = None,
-    ) -> 'cls':
-    """
-    Return the instance
-
-    The val parameter must be None if given, otherwise
-    ValueError gets raised.
-    """
-    if val is not None:
-      raise ValueError('val must be None')
-    return cls()
-
-  @classmethod
-  def default(cls) -> 'cls':
-    return cls()
-
-  def val(self) -> None:
-    return None
-
-
-def PadBits(octets):
-  # TODO: docstring
-  return type('PadBits', (PadBit,), dict(_OCTETS=octets))
-
-
 class Container(Bytes):
   _FROM_ORDER = ('items',)
   _OCTETS = None
@@ -496,5 +456,44 @@ class Container(Bytes):
         if hasattr(item, 'val') else item))
         for name, item in self.items.items())
 
+
+class PadBit(Bits):
+  # TODO: docstring
+
+  _OCTETS = 0o1
+
+  def __new__(cls, *args, **kwgs) -> 'cls':
+    if not args:
+      num_bytes, num_bits = divmod(cls._OCTETS, 8)
+      num_bytes += bool(num_bits)
+      args = bytes(num_bytes),
+      kwgs['_from'] = False
+    return super().__new__(cls, *args, **kwgs)
+
+  @classmethod
+  def from_val(cls,
+      val: None = None,
+    ) -> 'cls':
+    """
+    Return the instance
+
+    The val parameter must be None if given, otherwise
+    ValueError gets raised.
+    """
+    if val is not None:
+      raise ValueError('val must be None')
+    return cls()
+
+  @classmethod
+  def default(cls) -> 'cls':
+    return cls()
+
+  def val(self) -> None:
+    return None
+
+
+def PadBits(octets):
+  # TODO: docstring
+  return type('PadBits', (PadBit,), dict(_OCTETS=octets))
 
 del typing
