@@ -1,9 +1,9 @@
 import struct as _struct
 
-from si.utils import bytes2
+from si.utils import objbytes
 
 
-class CrcBytes(bytes2.Bytes):
+class CrcBytes(objbytes.Bytes):
   "16bit CRC checksum bytes"
 
   _OCTETS = 0o20
@@ -59,4 +59,4 @@ class CrcBytes(bytes2.Bytes):
     return (self.__class__.for_bytes(bytes_) == self)
 
 
-del bytes2
+del objbytes

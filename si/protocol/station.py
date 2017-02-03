@@ -1,6 +1,6 @@
 from enum import Enum
 
-from si.utils import bytes2
+from si.utils import objbytes
 from si.utils.clsdeco import enum_defined
 
 
@@ -163,19 +163,19 @@ class SysAddr(Enum):
 
 
 @enum_defined(MsMode)
-class MsModeByte(bytes2.Bytes):
+class MsModeByte(objbytes.Bytes):
   "MS-Mode byte"
   # References: see MsMode references
   _OCTETS = 0o10
 
 
 @enum_defined(SysAddr)
-class SysAddrByte(bytes2.Bytes):
+class SysAddrByte(objbytes.Bytes):
   "System address byte"
   # References: see SysAddr references
   _OCTETS = 0o10
 
 del Enum
 
-del bytes2
+del objbytes
 del enum_defined

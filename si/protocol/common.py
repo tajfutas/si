@@ -1,7 +1,7 @@
 from enum import Enum
 
 
-from si.utils import bytes2
+from si.utils import objbytes
 from si.utils.clsdeco import enum_defined
 
 
@@ -261,7 +261,7 @@ class ProtoChar(Enum):
 
 
 @enum_defined(Cmd)
-class CmdByte(bytes2.Bytes):
+class CmdByte(objbytes.Bytes):
   "Command code byte"
   # References: see Cmd references
 
@@ -278,7 +278,7 @@ class CmdByte(bytes2.Bytes):
 
 
 @enum_defined(ProtoChar)
-class ProtoCharByte(bytes2.Bytes):
+class ProtoCharByte(objbytes.Bytes):
   "Protocol character byte"
   # References: see ProtoChar references
 
@@ -287,5 +287,5 @@ class ProtoCharByte(bytes2.Bytes):
 
 del Enum
 
-del bytes2
+del objbytes
 del enum_defined

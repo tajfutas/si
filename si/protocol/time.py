@@ -1,10 +1,10 @@
 import typing
 
 import si.common as _common
-from si.utils import bytes2
+from si.utils import objbytes
 from si.utils.methdeco import default_if_none
 
-class DayOfWeekBits(bytes2.Bits):
+class DayOfWeekBits(objbytes.Bits):
   """
   Day of week stored in three bits.
 
@@ -68,7 +68,7 @@ class DayOfWeekBits(bytes2.Bits):
     return _common.DayOfWeek(int.from_bytes(self, 'big'))
 
 
-class FourWeekCounterRelativeBits(bytes2.Bits):
+class FourWeekCounterRelativeBits(objbytes.Bits):
   # TODO: more explanation
   """
   Four week counter relative stored in two bits.
@@ -99,7 +99,7 @@ class FourWeekCounterRelativeBits(bytes2.Bits):
     return int.from_bytes(self, 'big')
 
 
-class HalfDayBit(bytes2.Bits):
+class HalfDayBit(objbytes.Bits):
   """Half day value in one bit
 
   0b0  AM
@@ -141,10 +141,10 @@ class HalfDayBit(bytes2.Bits):
     return _common.HalfDay(int.from_bytes(self, 'big'))
 
 
-class TDByte(bytes2.DictBytes):
+class TDByte(objbytes.DictBytes):
   _octets = 0o10
-  _schema = bytes2.DictBytes._schema_from_tuple((
-      ("pad", bytes2.PadBits(2)),
+  _schema = objbytes.DictBytes._schema_from_tuple((
+      ("pad", objbytes.PadBits(2)),
       ("fourweekcrel", FourWeekCounterRelativeBits),
       ("dayofweek", DayOfWeekBits),
       ("halfday", HalfDayBit),
@@ -153,5 +153,5 @@ class TDByte(bytes2.DictBytes):
 
 del typing
 
-del bytes2
+del objbytes
 del default_if_none

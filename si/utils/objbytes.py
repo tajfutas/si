@@ -29,7 +29,7 @@ from . import bconv as _bconv
 
 class BaseBytes(bytes):
   """
-  Base class of bytes2 objects. Subclass of bytes.
+  Base class of objbytes objects. Subclass of bytes.
 
   Subclasses should define the following
   * class constants:
