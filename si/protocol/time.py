@@ -25,7 +25,7 @@ class DayOfWeekBits(objbytes.Bits):
 
   @classmethod
   def default(cls) -> 'cls':
-    return cls((0b111,), _from=False, _check_octets=False)
+    return cls((0b111,), check_octets=False, _from=False)
 
   @classmethod
   @default_if_none
@@ -80,7 +80,7 @@ class FourWeekCounterRelativeBits(objbytes.Bits):
 
   @classmethod
   def default(cls) -> 'cls':
-    return cls((0b00,), _from=False, _check_octets=False)
+    return cls((0b00,), check_octets=False, _from=False)
 
   @classmethod
   @default_if_none
@@ -112,7 +112,7 @@ class HalfDayBit(objbytes.Bits):
 
   @classmethod
   def default(cls) -> 'cls':
-    return cls((0b0,), _from=False, _check_octets=False)
+    return cls((0b0,), check_octets=False, _from=False)
 
   @classmethod
   @default_if_none

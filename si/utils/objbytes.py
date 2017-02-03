@@ -21,14 +21,8 @@ Utility classes:
   * PadBit
   * PadBits
 
-By default objbytes instances can be made by passing either the
-object they should represent or a bytes-like object (which is
-checked for having a decode method) containing the data.
-In addition, there are other special ways of instantiating and
-each of them is represented by a from_something() classmethod.
-
-If the subclass has a default value, then it can be instantiated
-by passing no arguments to the class.
+For more information about instantiation, see help page of
+BaseBytes class.
 """
 
 import collections as _collections
@@ -65,21 +59,58 @@ class BaseBytes(bytes):
       Does the deserialization (conversion from bytes) an return
       the object the objbites instance represent.
 
+  If variable size then must define also the following
+  * classmethod:
+    - from_ints()
+    - from_str()
+
+  See the above methods' help page for more information about
+  their purpose.
+
   Subclasses may optionally definde the following
   * classmethod:
     - default()
       Return the default instance. Recommended to be defined if
       such an object exist.
+
+  By default objbytes instances can be made by passing either
+  the object they should represent or a bytes-like object (which
+  is checked for having a decode method) containing the data.
+  In addition, there are other special ways of instantiating and
+  each of them is represented by a from_something() classmethod.
+
+  If the subclass has a default value, then it can be
+  instantiated by passing no arguments to the class.
+
+  If the subclass is defined as variable sized (class constant
+  _octets = None) and then from_something() classmethods must
+  pass octets = bitsize argument to the constructor if bitsize
+  is not 8 * length.
+
+  By default, instances are checked/validated for their size
+  which can be turned off by passing a check_octets=False
+  argument to the constructor. This may be reasonable for tested
+  code for getting some performance boost.
   """
+
   _FROM_ORDER = ('obj',)  # type: typing.Tuple[str]
+  """
+  Defines the order of from_something() classmethods which are
+  tried to return an instance for the given argument
+  by __new__() before falling back to the superclass' (bytes)
+  __new__().
+  """
 
   _octets = NotImplemented  # type: typing.Union[None, int]
+  """
+  Size of the serialized data in bits or None if variable size.
+  """
 
   def __new__(cls, *args,
-      _check_octets: bool = True,
+      check_octets: bool = True,
+      octets: typing.Union[None, int] = None,
       _from: typing.Union[None, bool, str] = None,
       _from_exc: typing.Union[Exception, None] = None,
-      _octets: typing.Union[None, int] = None,
       **kwgs
     ) -> 'cls':
     """
@@ -104,8 +135,8 @@ class BaseBytes(bytes):
             and hasattr(cls, attr_name)):
           try:
             inst = getattr(cls, attr_name)(*args,
-                _check_octets = _check_octets,
-                _octets = _octets,
+                check_octets = check_octets,
+                octets = octets,
                 **kwgs)
           except (ValueError, TypeError) as e:
             _from_exc = e
@@ -115,13 +146,15 @@ class BaseBytes(bytes):
         raise _from_exc
     if inst is None:
       inst = super().__new__(cls, *args, **kwgs)
-    if _octets:
+    if octets:
       if cls._octets is not None:
         efs = ('{}: attempt to set instance octets for a fixed '
             'size data')
         raise ValueError(efs.format(cls.__name__))
-      inst._octets = _octets
-    if _check_octets:
+      inst._octets = octets
+    elif cls._octets is None:
+      inst._octets = 8 * len(inst)
+    if check_octets:
       inst._check_octets()
     return inst
 
@@ -145,9 +178,16 @@ class BaseBytes(bytes):
     ) -> 'cls':
     """
     Create an instance from the given iterable of integers of
-    range 0--255.
+    range 0--255. Each integer represent a byte in this aspect.
+
+    Note that bytes and bytearray objects are also iterables of
+    such integers.
+
+    Consumes only the required number of integers from the given
+    iterable which determines the data. Note that this may be
+    more than the actual content of the data (i.e. when end of
+    an array is indicated by a specific value).
     """
-    # TODO: more docsting
     exp_num_bytes, exp_num_bits = divmod(cls._octets, 8)
     exp_len = exp_num_bytes + bool(exp_num_bits)
     iter_i = iter(i)
@@ -169,7 +209,12 @@ class BaseBytes(bytes):
     Create an instance from an iterable that should yield
     character strings of hexdigit pairs.
 
-    See si.utils.bconv.str2bytes()
+    For more info, see help page of si.utils.bconv.str2bytes().
+
+    Consumes only the required number of characters from the
+    given iterable which determines the data. Note that this may
+    be more than the actual content of the data (i.e. when end
+    of an array is indicated by a specific value).
     """
     exp_num_bytes, exp_num_bits = divmod(cls._octets, 8)
     exp_len = exp_num_bytes + bool(exp_num_bits)
@@ -195,8 +240,6 @@ class BaseBytes(bytes):
       efs = '{}: expected an explicit or None self._octets'
       raise NotImplementedError(efs.format(
           self.__class__.__name__))
-    elif self._octets is None:
-      return self._octets
     else:
       return self._octets
 
@@ -239,32 +282,39 @@ class BaseBytes(bytes):
 
 
 class Bytes(BaseBytes):
+  """
+  Base class of all objbytes objects which are represented by
+  bytes and not bits.
+
+  Its octets must be divisible by 8 without remainder and that
+  is checked during instatntiation.
+  """
   BITWISE, BYTEWISE = False, True
 
-  def __init__(self, *args, **kwgs):
-    super().__init__()
-    exp_num_bytes, exp_num_bits = divmod(self.octets, 8)
+  def _check_octets(self) -> typing.Tuple[int, int, int]:
+    """
+    Validate datasize.
+
+    For more info, see BaseBytes._check_octets()
+    """
+    t_ = super()._check_octets()
+    num_bytes, exp_num_bytes, exp_num_bits = t_
     if exp_num_bits:
-      efs = ('{}: invalid cls._octets for Bytes: modulo 8 ',
-          'should have been zero')
+      efs = ('{}: invalid cls._octets for Bytes: it must ',
+          'be divisible by 8 without remainder')
       raise RuntimeError(efs.format(self.__class__.__name__))
     if exp_num_bytes != len(self):
       efs = '{}: invalid length (expected {}): {}'
       raise ValueError(efs.format(self.__class__.__name__,
           exp_num_bytes, len(self)))
-
-  def _check_octets(self) -> typing.Tuple[int, int, int]:
-    "See BaseBytes._check_octets()"
-    t_ = super()._check_octets()
-    num_bytes, exp_num_bytes, exp_num_bits = t_
-    if exp_num_bits:
-      efs = ('{}: invalid cls._octets for Bytes: modulo 8 ',
-          'should have been zero')
-      raise RuntimeError(efs.format(self.__class__.__name__))
     return num_bytes, exp_num_bytes, exp_num_bits
 
 
 class Bits(BaseBytes):
+  """
+  Base class of all objbytes objects which are represented by
+  bits and not bytes.
+  """
   BITWISE, BYTEWISE = True, False
 
   def __str__(self):
@@ -368,26 +418,24 @@ class DictBytes(Bytes):
     return _MappingProxyType(_collections.OrderedDict(t))
 
   def __new__(cls, *args,
-      _check_octets: bool = True,
+      check_octets: bool = True,
+      octets: typing.Union[None, int] = None,
       _from: typing.Union[None, bool, str] = None,
       _from_exc: typing.Union[Exception, None] = None,
-      _octets: typing.Union[None, int] = None,
       _items: typing.Union[None, _MappingProxyType] = None,
       **kwgs
     ) -> 'cls':
     inst = super().__new__(cls, *args,
-        _check_octets = False,
+        check_octets = False,
+        octets = octets,
         _from = _from,
         _from_exc = _from_exc,
-        _octets = _octets,
         **kwgs)
     if _items:
       inst._items = _items
     elif not hasattr(inst, '_items'):
       inst._items = inst._get_items()
-    if cls._octets is None and not hasattr(inst, '_octets'):
-      inst._octets = inst._get_octets()
-    elif _check_octets:
+    elif check_octets:
       inst._check_octets()
     return inst
 
@@ -410,9 +458,9 @@ class DictBytes(Bytes):
   def from_items(cls,
       _dict: typing.Union[None, dict] = None,
       *,
+      check_octets: bool = True,
+      octets: typing.Union[None, int] = None,
       _from_obj: bool = False,
-      _check_octets: bool = True,
-      _octets: typing.Union[None, int] = None,
       **itms
     ) -> 'cls':
     "Create an instance from items" # TODO more docstring
@@ -444,8 +492,8 @@ class DictBytes(Bytes):
       _items[item_name] = item_inst
     arg = cls._bytes_from_items(_items)
     _items = _MappingProxyType(_items)
-    return cls(arg, _from=False, _items=_items,
-        _check_octets=_check_octets, _octets=_octets)
+    return cls(arg, check_octets=check_octets, octets=octets,
+        _from=False, _items=_items)
 
   @classmethod
   def from_obj(cls,
