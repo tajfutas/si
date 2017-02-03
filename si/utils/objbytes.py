@@ -3,14 +3,32 @@ This module provides base and utility classes which are all
 subclasses of builtin bytes and which are do an automatic
 serialization and deserialization of the object they represent.
 
+The module provides base classes which should be subclassed and
+customized for each object. See docstring of BaseBytes and the
+particular base class for more information.
+
 Base classes:
   * Bytes
   * Bits
   * DictBytes
 
+The module provides some utility classes for the most common
+cases. These classes does not have to get subclassed, but a
+simple sublass with a pass could be reasonable to assigning a
+name to the underlying object.
+
 Utility classes:
   * PadBit
   * PadBits
+
+By default objbytes instances can be made by passing either the
+object they should represent or a bytes-like object (which is
+checked for having a decode method) containing the data.
+In addition, there are other special ways of instantiating and
+each of them is represented by a from_something() classmethod.
+
+If the subclass has a default value, then it can be instantiated
+by passing no arguments to the class.
 """
 
 import collections as _collections
@@ -23,24 +41,36 @@ from . import bconv as _bconv
 
 
 ################################################################
-# BASE CLASSES                                                 #
+# SUPERCLASS                                                   #
 ################################################################
 
 
 class BaseBytes(bytes):
   """
-  Base class of objbytes objects. Subclass of bytes.
+  Superclass of all objbytes classes. Subclass of bytes.
+  Every objbytes class should be inherited by this class.
 
-  Subclasses should define the following
-  * class constants:
-    - '_octets': integer or None
+  Subclasses must define the following
+  * class constant:
+    - _octets: integer or None
       If integer then it is the size of the data in bits.
       None indicates variable size which gets determined during
-      instatntiation.
-  * class methods:
-    - 'from_obj(cls, obj)'
+      instantiation.
+  * classmethod:
+    - from_obj(obj)
+      Does the serialization (conversion to bytes) of the given
+      object and return an objbytes instance.
+  * method:
+    - obj()
+      Does the deserialization (conversion from bytes) an return
+      the object the objbites instance represent.
+
+  Subclasses may optionally definde the following
+  * classmethod:
+    - default()
+      Return the default instance. Recommended to be defined if
+      such an object exist.
   """
-  # TODO: more docstring
   _FROM_ORDER = ('obj',)  # type: typing.Tuple[str]
 
   _octets = NotImplemented  # type: typing.Union[None, int]
@@ -58,7 +88,7 @@ class BaseBytes(bytes):
     Attention! If first argument is a bytes-like object (has
     'decode' method) then instance creation is delegated to
     builtin bytes. Otherwise it is treated as the serialized
-    object the data represents.
+    object the data represent.
     """
     inst = None
     first_arg = args[0] if args else None
@@ -102,13 +132,10 @@ class BaseBytes(bytes):
   def __str__(self):
     return _bconv.ints2str(self)
 
+  # abstract classmethod
   @classmethod
   def default(cls) -> 'cls':
-    """
-    Create a default instance or raise TypeError
-
-    Should be defined by subclasses of particular structures.
-    """
+    "Create a default instance or raise TypeError"
     raise TypeError('default not defined')
 
   @classmethod
@@ -120,6 +147,7 @@ class BaseBytes(bytes):
     Create an instance from the given iterable of integers of
     range 0--255.
     """
+    # TODO: more docsting
     exp_num_bytes, exp_num_bits = divmod(cls._octets, 8)
     exp_len = exp_num_bytes + bool(exp_num_bits)
     iter_i = iter(i)
@@ -154,13 +182,10 @@ class BaseBytes(bytes):
     kwgs['_from'] = False
     return cls(_bconv.str2ints(ints, ignored=ignored), **kwgs)
 
+  # abstract classmethod
   @classmethod
   def from_obj(cls, obj: typing.Any) -> 'cls':
-    """
-    Create an instance from the given object.
-
-    Must be defined by subclasses of particular structures.
-    """
+    "Create an instance from the given object."
     raise NotImplementedError('must be defined by subclasses')
 
   @property
@@ -177,7 +202,7 @@ class BaseBytes(bytes):
 
   def _check_octets(self) -> typing.Tuple[int, int, int]:
     """
-    Check octets
+    Check octets.
 
     Called by __init__ and should raise
     * RuntimeError if cls._octets was given wrong,
@@ -199,6 +224,18 @@ class BaseBytes(bytes):
       raise ValueError(efs.format(self.__class__.__name__,
           exp_num_bytes_, num_bytes))
     return num_bytes, exp_num_bytes, exp_num_bits
+
+  # abstract method
+  @classmethod
+  def obj(self) -> typing.Any:
+    "Return the object the data represent."
+    raise NotImplementedError('must be defined by subclasses')
+
+
+
+################################################################
+# BASE CLASSES                                                 #
+################################################################
 
 
 class Bytes(BaseBytes):
