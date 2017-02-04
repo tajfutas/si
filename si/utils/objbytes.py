@@ -48,7 +48,7 @@ class BaseBytes(bytes):
 
   Subclasses must define the following
   * class constant:
-    - _octets: integer or None
+    - _bitsize: integer or None
       If integer then it is the size of the data in bits.
       None indicates variable size which gets determined during
       instantiation.
@@ -76,48 +76,47 @@ class BaseBytes(bytes):
       such an object exist.
 
   By default objbytes instances can be made by passing either
-  the object they should represent or a bytes-like object (which
+  the underlying object (serialization) or its databytes
+  (deserialization is then done with obj() method).
+
+  Fro more info about this see help of __new__.
+
+  they should represent or a bytes-like object (which
   is checked for having a decode method) containing the data.
   In addition, there are other special ways of instantiating and
   each of them is represented by a from_something() classmethod.
 
   If the subclass has a default value, then it can be
   instantiated by passing no arguments to the class.
-
-  If the subclass is defined as variable sized (class constant
-  _octets = None) and then from_something() classmethods must
-  pass octets = bitsize argument to the constructor if bitsize
-  is not 8 * length.
-
-  By default, instances are checked/validated for their size
-  which can be turned off by passing a check_octets=False
-  argument to the constructor. This may be reasonable for tested
-  code for getting some performance boost.
   """
 
-  _FACTORY_METH_ORDER = ('from_obj', 'default')
-                        # type: typing.Tuple[str]
+  _SERA_FMETH_ORDER = ('from_obj', 'default')
+                      # type: typing.Tuple[str]
   """
-  Defines the fallback order of factory methods which are
+  During serialization attempt (see help of __new__), this tuple
+  is looped over for factory method names whose corresponding
+  factory method is then attempted to provide an instance
+  without errors.
+
+   Defines the fallback order of factory methods which are
   attempted to return an instance for the given arguments
   by __new__() before finally falling back to the superclass'
-  (bytes) __new__(), if the first argument is not bytes-like
-  (does not having a decode method). If the factory method
+  (bytes) __new__(),  . If the factory method
   return None that triggers a fallback. ValueError and TypeError
   exceptions are also causing a fallback. If however __new__ was
   called with a factory_meth = True attribute then these
   exceptions are raised before the final fallback.
   """
 
-  _octets = NotImplemented  # type: typing.Union[None, int]
+  _bitsize = NotImplemented  # type: typing.Union[None, int]
   """
   Size of the serialized data in bits or None if variable size.
   Must be overridden by subclasses.
   """
 
   def __new__(cls, *args,
-      check_octets: bool = True,
-      octets: typing.Union[None, int] = None,
+      check_bitsize: bool = True,
+      bitsize: typing.Union[None, int] = None,
       factory_meth: typing.Union[None, bool, str,
           typing.Callable[...,'cls']] = None,
       **kwgs
@@ -125,11 +124,49 @@ class BaseBytes(bytes):
     """
     Create a new instance.
 
-    Attention! If first argument is a bytes-like object (has
-    'decode' method) then instance creation is delegated to
-    builtin bytes. Otherwise it is treated as the serialized
-    object the data represent.
+    Accepts at most a single positional argument, and that must
+    be the underlying object (serialization) or its databytes
+    (deserialization is then done with obj() method).
+
+    Serialization attempt is done if factory_meth keyword
+    argument is None (default) and argument is not a bytes-like
+    object (checked for having a 'decode' method), or if
+    factory_meth is True.
+
+    During serialization attempt, _SERA_FMETH_ORDER tuple is
+    looped over for factory method names whose corresponding
+    factory method is then attempted to provide an instance
+    without errors. If none of them is capable to do that and
+    if factory_meth is None then as a final fallback, argument
+    is passed finally to the superclass' (bytes) __new__().
+    If a factory method return None then next one comes. Same
+    applies to raised ValueError and TypeError exceptions. If
+    however factory_meth is True then the last exception of
+    those gets raised and no final fallback is made.
+
+    Explicit serialization is done (the corresponding factory
+    method is called) if factory_meth is callable or is the name
+    of a factory method defined in the class.
+
+    No serialization is done if factory_meth keyword argument is
+    False.
+
+    Important! All factory methods must explicitely set
+    factory_meth = False in their return cls(...) line or
+    decorated with @factory_method.
+
+    If the underlying object is serialized to variable size bits
+    (set objbytes subclass' _bitsize = None) and the expected
+    bitsize can be less than 8 * bytesize then factory methods
+    must explicitely set bitsize value with the bitsize keyword
+    argument. Note that this must be a rare case.
+
+    By default, instances are checked/validated for their size
+    which can be turned off with check_bitsize = False keyword
+    argument, especially to speed up instantiation of tested
+    code.
     """
+    # TODO: @factory_method
     inst = None
     if 1 < len(args):
       efs = ('{}() takes at most 1 positional argument but {} '
@@ -137,13 +174,13 @@ class BaseBytes(bytes):
       raise TypeError(efs.format(cls.__name__, len(args)))
     arg = args[0] if args else None
     factory_meth_exc = None
-    if hasattr(arg, 'decode'): # is bytes-like
-      pass
-    elif factory_meth in (True, None):
-      for method_name in cls._FACTORY_METH_ORDER:
+    if factory_meth is None and hasattr(arg, 'decode'):
+      pass  # is bytes-like, delegated to super().__new__()
+    elif factory_meth is None or factory_meth is True:
+      for method_name in cls._SERA_FMETH_ORDER:
         try:
           inst = getattr(cls, method_name)(arg,
-              check_octets=check_octets, **kwgs)
+              check_bitsize=check_bitsize, **kwgs)
         except (ValueError, TypeError) as e:
           factory_meth_exc = e
         else:
@@ -158,20 +195,20 @@ class BaseBytes(bytes):
         fmethod = factory_meth
       else:
         fmethod = getattr(cls, factory_meth)
-      inst = fmethod(*args, check_octets=check_octets, **kwgs)
+      inst = fmethod(*args, check_bitsize=check_bitsize, **kwgs)
     if inst is None:
       inst = super().__new__(cls, *args, **kwgs)
-    has_cls_octets = cls._octets is None  # μ-o
-    if octets:
-      if not has_cls_octets:
-        efs = ('{}: attempt to set instance octets for a fixed '
-            'size data')
+    has_cls_bitsize = cls._bitsize is None  # μ-o
+    if bitsize:
+      if not has_cls_bitsize:
+        efs = ('{}: attempt to set instance bitsize for a '
+            'fixed size data')
         raise ValueError(efs.format(cls.__name__))
-      inst._octets = octets
-    elif has_cls_octets:
-      inst._octets = 8 * len(inst)
-    if check_octets:
-      inst._check_octets()
+      inst._bitsize = bitsize
+    elif has_cls_bitsize:
+      inst._bitsize = 8 * len(inst)
+    if check_bitsize:
+      inst._check_bitsize()
     return inst
 
   def __repr__(self):
@@ -185,7 +222,7 @@ class BaseBytes(bytes):
   @classmethod
   @eliminate_first_arg_if_none
   def default(cls,
-      check_octets: bool = False,  # should be overridden
+      check_bitsize: bool = False,  # should be overridden
     ) -> 'cls':
     "Create a default instance or raise TypeError"
     raise TypeError('default not defined')
@@ -207,7 +244,7 @@ class BaseBytes(bytes):
     more than the actual content of the data (i.e. when end of
     an array is indicated by a specific value).
     """
-    exp_num_bytes, exp_num_bits = divmod(cls._octets, 8)
+    exp_num_bytes, exp_num_bits = divmod(cls._bitsize, 8)
     exp_len = exp_num_bytes + bool(exp_num_bits)
     iter_i = iter(i)
     ints = [next(iter_i) for _ in range(exp_len)]
@@ -235,7 +272,7 @@ class BaseBytes(bytes):
     be more than the actual content of the data (i.e. when end
     of an array is indicated by a specific value).
     """
-    exp_num_bytes, exp_num_bits = divmod(cls._octets, 8)
+    exp_num_bytes, exp_num_bits = divmod(cls._bitsize, 8)
     exp_len = exp_num_bytes + bool(exp_num_bits)
     exp_len *= 2  # pairs of hexdigits per byte
     iter_s = iter(s)
@@ -254,33 +291,33 @@ class BaseBytes(bytes):
     raise NotImplementedError('must be defined by subclasses')
 
   @property
-  def octets(self) -> int:
+  def bitsize(self) -> int:
     "Size in bits"
-    if self._octets == NotImplemented:
-      efs = '{}: expected an explicit or None self._octets'
+    if self._bitsize == NotImplemented:
+      efs = '{}: expected an explicit or None self._bitsize'
       raise NotImplementedError(efs.format(
           self.__class__.__name__))
     else:
-      return self._octets
+      return self._bitsize
 
-  def _check_octets(self) -> typing.Tuple[int, int, int]:
+  def _check_bitsize(self) -> typing.Tuple[int, int, int]:
     """
-    Check octets.
+    Check bitsize.
 
     Called by __init__ and should raise
-    * RuntimeError if cls._octets was given wrong,
+    * RuntimeError if cls._bitsize was given wrong,
     * ValueError if the size by the given value would be wrong.
 
     Return (num_bytes, exp_num_bytes, exp_num_bits) tuple, which
     is a micro-optimization for subclasses which should define
-    their _check_octets() with the following first two lines:
-      t_ = super()._check_octets()
+    their _check_bitsize() with the following first two lines:
+      t_ = super()._check_bitsize()
       num_bytes, exp_num_bytes, exp_num_bits = t_
-    Similarly, _check_octets() in subclasses should return:
+    Similarly, _check_bitsize() in subclasses should return:
       return num_bytes, exp_num_bytes, exp_num_bits
     """
     num_bytes = len(self)
-    exp_num_bytes, exp_num_bits = divmod(self.octets, 8)
+    exp_num_bytes, exp_num_bits = divmod(self.bitsize, 8)
     exp_num_bytes_ = exp_num_bytes + bool(exp_num_bits)
     if exp_num_bytes_ != num_bytes:
       efs = '{}: invalid length (expected {}): {}'
@@ -306,33 +343,33 @@ class Bytes(BaseBytes):
   Base class of all objbytes objects which are represented by
   bytes and not bits.
 
-  Its octets must be divisible by 8 without remainder and that
+  Its bitsize must be divisible by 8 without remainder and that
   is checked during instatntiation.
   """
   BITWISE, BYTEWISE = False, True
 
   def __new__(cls, *args,
-      check_octets: bool = True,
+      check_bitsize: bool = True,
       factory_meth: typing.Union[None, bool, str,
           typing.Callable[...,'cls']] = None,
       **kwgs
     ) -> 'cls':
     # TODO: docstring
     return super().__new__(cls, *args,
-        check_octets = check_octets,
+        check_bitsize = check_bitsize,
         factory_meth = factory_meth,
         **kwgs)
 
-  def _check_octets(self) -> typing.Tuple[int, int, int]:
+  def _check_bitsize(self) -> typing.Tuple[int, int, int]:
     """
     Validate datasize.
 
-    For more info, see BaseBytes._check_octets()
+    For more info, see BaseBytes._check_bitsize()
     """
-    t_ = super()._check_octets()
+    t_ = super()._check_bitsize()
     num_bytes, exp_num_bytes, exp_num_bits = t_
     if exp_num_bits:
-      efs = ('{}: invalid cls._octets for Bytes: it must ',
+      efs = ('{}: invalid cls._bitsize for Bytes: it must ',
           'be divisible by 8 without remainder')
       raise RuntimeError(efs.format(self.__class__.__name__))
     if exp_num_bytes != len(self):
@@ -361,7 +398,7 @@ class Bits(BaseBytes):
     Create an instance from the given iterable of bits
     (integers of range 0--1).
     """
-    exp_len = cls._octets
+    exp_len = cls._bitsize
     iter_b = iter(b)
     bits = [next(iter_b) for _ in range(exp_len)]
     if len(bits) != exp_len:
@@ -388,9 +425,9 @@ class Bits(BaseBytes):
     b = _bconv.str2bits(s, bitchars=bitchars, ignored=ignored)
     return cls.from_bits(b)
 
-  def _check_octets(self) -> typing.Tuple[int, int, int]:
-    "See BaseBytes._check_octets()"
-    t_ = super()._check_octets()
+  def _check_bitsize(self) -> typing.Tuple[int, int, int]:
+    "See BaseBytes._check_bitsize()"
+    t_ = super()._check_bitsize()
     num_bytes, exp_num_bytes, exp_num_bits = t_
     if self[0] & 2**8-2**exp_num_bits:
       efs = '{}: first value expected to be less than {}'
@@ -401,8 +438,8 @@ class Bits(BaseBytes):
 
 class DictBytes(Bytes):
   # TODO: docstring
-  _FACTORY_METH_ORDER = ('from_items', 'default')
-  _octets = None
+  _SERA_FMETH_ORDER = ('from_items', 'default')
+  _bitsize = None
   _schema = _MappingProxyType({})
 
   @staticmethod
@@ -412,16 +449,16 @@ class DictBytes(Bytes):
     else:
       gen = iter(items)
     bytes_, last_byte_val = b'', 0b0
-    octets, last_byte_bits = 0o0, 0o0
+    bitsize, last_byte_bits = 0o0, 0o0
     for item in gen:
-      item_num_bytes, item_num_bits = divmod(item.octets, 8)
+      item_num_bytes, item_num_bits = divmod(item.bitsize, 8)
       if item_num_bytes:
         if last_byte_val:
           efs = 'received bytes in bitwise mode: {!r}'
           raise ValueError(efs.format(item))
         else:
           bytes_ += item[:item_num_bytes]
-          octets += 8 * item_num_bytes
+          bitsize += 8 * item_num_bytes
       if item_num_bits:
         Lb, Ib = last_byte_bits, item_num_bits
         S = shift = Lb + Ib - 8
@@ -429,7 +466,7 @@ class DictBytes(Bytes):
         if 0 <= S:
           B >>= S
           bytes_ += bytes((last_byte_val + B,))
-          octets += 0o10
+          bitsize += 0o10
           last_byte_val = item[-1] & 2**S-1
           last_byte_val <<= 8-S
           last_byte_bits = S
@@ -437,7 +474,7 @@ class DictBytes(Bytes):
           B <<= -S
           last_byte_val += B
           last_byte_bits += Ib
-          octets += Ib
+          bitsize += Ib
     else:
       if last_byte_val:
         raise ValueError('finished in bitwise mode')
@@ -450,21 +487,21 @@ class DictBytes(Bytes):
     return _MappingProxyType(_collections.OrderedDict(t))
 
   def __new__(cls, *args,
-      check_octets: bool = True,
+      check_bitsize: bool = True,
       factory_meth: typing.Union[None, bool, str] = None,
       _items: typing.Union[None, _MappingProxyType] = None,
       **kwgs
     ) -> 'cls':
     inst = super().__new__(cls, *args,
-        check_octets = False,
+        check_bitsize = False,
         factory_meth = factory_meth,
         **kwgs)
     if _items:
       inst._items = _items
     elif not hasattr(inst, '_items'):
       inst._items = inst._get_items()
-    elif check_octets:
-      inst._check_octets()
+    elif check_bitsize:
+      inst._check_bitsize()
     return inst
 
   @classmethod
@@ -476,7 +513,9 @@ class DictBytes(Bytes):
 
   @classmethod
   @eliminate_first_arg_if_none
-  def default(cls, *, check_octets:bool=False, **kwgs) -> 'cls':
+  def default(cls, *,
+      check_bitsize:bool=False, **kwgs
+    ) -> 'cls':
     """
     Create a default instance
     """
@@ -488,7 +527,7 @@ class DictBytes(Bytes):
   def from_items(cls,
       _dict: typing.Union[None, dict] = None,
       *,
-      check_octets: bool = True,
+      check_bitsize: bool = True,
       from_obj: bool = False,
       **itms
     ) -> 'cls':
@@ -521,7 +560,7 @@ class DictBytes(Bytes):
       _items[item_name] = item_inst
     arg = cls._bytesfactory_meth_items(_items)
     _items = _MappingProxyType(_items)
-    return cls(arg, check_octets=check_octets,
+    return cls(arg, check_bitsize=check_bitsize,
       factory_meth=False, _items=_items)
 
   @classmethod
@@ -543,19 +582,19 @@ class DictBytes(Bytes):
   def items(self):
     return self._items
 
-  def _check_octets(self) -> typing.Tuple[int, int, int]:
-    "See BaseBytes._check_octets()"
-    t_ = super()._check_octets()
-    if self.__class__._octets is not None:
+  def _check_bitsize(self) -> typing.Tuple[int, int, int]:
+    "See BaseBytes._check_bitsize()"
+    t_ = super()._check_bitsize()
+    if self.__class__._bitsize is not None:
       return t_
     else:
       num_bytes, exp_num_bytes, exp_num_bits = t_
-      octets = 8 * exp_num_bytes + exp_num_bits
-      exp_octets = self._get_octets()
-      if octets != exp_octets:
-        efs = '{}: invalid octets (expected {}): {}'
+      bitsize = 8 * exp_num_bytes + exp_num_bits
+      exp_bitsize = self._get_bitsize()
+      if bitsize != exp_bitsize:
+        efs = '{}: invalid bitsize (expected {}): {}'
         raise ValueError(efs.format(self.__class__.__name__,
-            exp_octets, octets))
+            exp_bitsize, bitsize))
       return num_bytes, exp_num_bytes, exp_num_bits
 
   def _get_items(self):
@@ -565,7 +604,7 @@ class DictBytes(Bytes):
     for item_name, item_cls in self._schema.items():
       item_bitwise = item_cls.BITWISE
       if bitwise and not item_bitwise:
-        aes = ('switching to bytewise: octets index must have '
+        aes = ('switching to bytewise: bitsize index must have '
             'no remainder after divided by 8')
         assert not o % 8, aes
       bitwise = item_bitwise
@@ -586,11 +625,11 @@ class DictBytes(Bytes):
         raise ValueError(efs.format(self.__class__.__name__,
             'bits' if bitwise else 'bytes'))
       _items[item_name] = item_inst
-      o += item_inst.octets
+      o += item_inst.bitsize
     return _MappingProxyType(_items)
 
-  def _get_octets(self):
-    return sum((i.octets for i in self.items.values()))
+  def _get_bitsize(self):
+    return sum((i.bitsize for i in self.items.values()))
 
   def obj(self):
     return _collections.OrderedDict((name, (item.obj()
@@ -607,11 +646,11 @@ class DictBytes(Bytes):
 class PadBit(Bits):
   # TODO: docstring
 
-  _octets = 0o1
+  _bitsize = 0o1
 
   def __new__(cls, *args, **kwgs) -> 'cls':
     if not args:
-      num_bytes, num_bits = divmod(cls._octets, 8)
+      num_bytes, num_bits = divmod(cls._bitsize, 8)
       num_bytes += bool(num_bits)
       args = bytes(num_bytes),
       kwgs['factory_meth'] = False
@@ -639,9 +678,9 @@ class PadBit(Bits):
     return None
 
 
-def PadBits(octets):
+def PadBits(bitsize):
   # TODO: docstring
-  return type('PadBits', (PadBit,), dict(_octets=octets))
+  return type('PadBits', (PadBit,), dict(_bitsize=bitsize))
 
 
 del typing

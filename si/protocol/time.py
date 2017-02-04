@@ -23,12 +23,15 @@ class DayOfWeekBits(objbytes.Bits):
   # PCPROG5 (pp. 17, 19)
   # SPORTident 9e291aa \DayOfWeek.cs
 
-  _octets = 0o3
+  _bitsize = 0o3
 
   @classmethod
   @eliminate_first_arg_if_none
-  def default(cls, *, check_octets:bool=False, **kwgs) -> 'cls':
-    return cls((0b111,), check_octets=False, factory_meth=False)
+  def default(cls, *,
+      check_bitsize:bool=False, **kwgs
+    ) -> 'cls':
+    return cls((0b111,), check_bitsize=False,
+        factory_meth=False)
 
   @classmethod
   @none_if_first_arg_is_none
@@ -79,12 +82,15 @@ class FourWeekCounterRelativeBits(objbytes.Bits):
   # References:
   # PCPROG5 (pp. 17, 19)
 
-  _octets = 0o2
+  _bitsize = 0o2
 
   @classmethod
   @eliminate_first_arg_if_none
-  def default(cls, *, check_octets:bool=False, **kwgs) -> 'cls':
-    return cls((0b00,), check_octets=False, factory_meth=False)
+  def default(cls, *,
+      check_bitsize:bool=False, **kwgs
+    ) -> 'cls':
+    return cls((0b00,), check_bitsize=False,
+        factory_meth=False)
 
   @classmethod
   @none_if_first_arg_is_none
@@ -113,12 +119,14 @@ class HalfDayBit(objbytes.Bits):
   # References:
   # PCPROG5 (pp. 17, 19)
 
-  _octets = 0o1
+  _bitsize = 0o1
 
   @classmethod
   @eliminate_first_arg_if_none
-  def default(cls, *, check_octets:bool=False, **kwgs) -> 'cls':
-    return cls((0b0,), check_octets=False, factory_meth=False)
+  def default(cls, *,
+      check_bitsize:bool=False, **kwgs
+    ) -> 'cls':
+    return cls((0b0,), check_bitsize=False, factory_meth=False)
 
   @classmethod
   @none_if_first_arg_is_none
@@ -148,7 +156,7 @@ class HalfDayBit(objbytes.Bits):
 
 
 class TDByte(objbytes.DictBytes):
-  _octets = 0o10
+  _bitsize = 0o10
   _schema = objbytes.DictBytes._schemafactory_meth_tuple((
       ("pad", objbytes.PadBits(2)),
       ("fourweekcrel", FourWeekCounterRelativeBits),
