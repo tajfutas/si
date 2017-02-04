@@ -37,6 +37,16 @@ from .methdeco import eliminate_first_arg_if_none, \
 
 
 ################################################################
+# FACTORY METHOD DECORATORS                                    #
+################################################################
+
+
+default = eliminate_first_arg_if_none
+default_if_arg_is_none = none_if_first_arg_is_none
+
+
+
+################################################################
 # SUPERCLASS                                                   #
 ################################################################
 
@@ -220,7 +230,7 @@ class BaseBytes(bytes):
 
   # abstract classmethod
   @classmethod
-  @eliminate_first_arg_if_none
+  @default
   def default(cls,
       check_bitsize: bool = False,  # should be overridden
     ) -> 'cls':
@@ -285,7 +295,7 @@ class BaseBytes(bytes):
 
   # abstract classmethod
   @classmethod
-  @none_if_first_arg_is_none
+  @default_if_arg_is_none
   def from_obj(cls, obj: typing.Any, **kwgs) -> 'cls':
     "Create an instance from the given object."
     raise NotImplementedError('must be defined by subclasses')
@@ -512,7 +522,7 @@ class DictBytes(Bytes):
     return cls._schema.keys()
 
   @classmethod
-  @eliminate_first_arg_if_none
+  @default
   def default(cls, *,
       check_bitsize:bool=False, **kwgs
     ) -> 'cls':
@@ -523,7 +533,7 @@ class DictBytes(Bytes):
         for (item_name, item_cls) in cls._schema.items()})
 
   @classmethod
-  @none_if_first_arg_is_none
+  @default_if_arg_is_none
   def from_items(cls,
       _dict: typing.Union[None, dict] = None,
       *,
@@ -564,7 +574,7 @@ class DictBytes(Bytes):
       factory_meth=False, _items=_items)
 
   @classmethod
-  @none_if_first_arg_is_none
+  @default_if_arg_is_none
   def from_obj(cls,
       _dict: typing.Union[None, dict] = None,
       **itms

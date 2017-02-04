@@ -2,8 +2,6 @@ import typing
 
 import si.common as _common
 from si.utils import objbytes
-from si.utils.methdeco import eliminate_first_arg_if_none, \
-    none_if_first_arg_is_none
 
 
 class DayOfWeekBits(objbytes.Bits):
@@ -26,7 +24,7 @@ class DayOfWeekBits(objbytes.Bits):
   _bitsize = 0o3
 
   @classmethod
-  @eliminate_first_arg_if_none
+  @objbytes.default
   def default(cls, *,
       check_bitsize:bool=False, **kwgs
     ) -> 'cls':
@@ -34,7 +32,7 @@ class DayOfWeekBits(objbytes.Bits):
         factory_meth=False)
 
   @classmethod
-  @none_if_first_arg_is_none
+  @objbytes.default_if_arg_is_none
   def from_obj(cls,
       obj: typing.Union[None, _common.DayOfWeek, str, int],
       **kwgs
@@ -85,7 +83,7 @@ class FourWeekCounterRelativeBits(objbytes.Bits):
   _bitsize = 0o2
 
   @classmethod
-  @eliminate_first_arg_if_none
+  @objbytes.default
   def default(cls, *,
       check_bitsize:bool=False, **kwgs
     ) -> 'cls':
@@ -93,7 +91,7 @@ class FourWeekCounterRelativeBits(objbytes.Bits):
         factory_meth=False)
 
   @classmethod
-  @none_if_first_arg_is_none
+  @objbytes.default_if_arg_is_none
   def from_obj(cls,
       obj: typing.Union[None, int],
       **kwgs
@@ -122,14 +120,14 @@ class HalfDayBit(objbytes.Bits):
   _bitsize = 0o1
 
   @classmethod
-  @eliminate_first_arg_if_none
+  @objbytes.default
   def default(cls, *,
       check_bitsize:bool=False, **kwgs
     ) -> 'cls':
     return cls((0b0,), check_bitsize=False, factory_meth=False)
 
   @classmethod
-  @none_if_first_arg_is_none
+  @objbytes.default_if_arg_is_none
   def from_obj(cls,
       obj: typing.Union[None, _common.DayOfWeek, str, int],
       **kwgs
@@ -168,5 +166,3 @@ class TDByte(objbytes.DictBytes):
 del typing
 
 del objbytes
-del eliminate_first_arg_if_none
-del none_if_first_arg_is_none
