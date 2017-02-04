@@ -31,6 +31,8 @@ from types import MappingProxyType as _MappingProxyType
 import typing
 
 from . import bconv as _bconv
+from .methdeco import eliminate_first_arg_if_none, \
+    none_if_first_arg_is_none
 
 
 
@@ -93,24 +95,31 @@ class BaseBytes(bytes):
   code for getting some performance boost.
   """
 
-  _FROM_ORDER = ('obj',)  # type: typing.Tuple[str]
+  _FACTORY_METH_ORDER = ('from_obj', 'default')
+                        # type: typing.Tuple[str]
   """
-  Defines the order of from_something() classmethods which are
-  tried to return an instance for the given argument
-  by __new__() before falling back to the superclass' (bytes)
-  __new__().
+  Defines the fallback order of factory methods which are
+  attempted to return an instance for the given arguments
+  by __new__() before finally falling back to the superclass'
+  (bytes) __new__(), if the first argument is not bytes-like
+  (does not having a decode method). If the factory method
+  return None that triggers a fallback. ValueError and TypeError
+  exceptions are also causing a fallback. If however __new__ was
+  called with a factory_meth = True attribute then these
+  exceptions are raised before the final fallback.
   """
 
   _octets = NotImplemented  # type: typing.Union[None, int]
   """
   Size of the serialized data in bits or None if variable size.
+  Must be overridden by subclasses.
   """
 
   def __new__(cls, *args,
       check_octets: bool = True,
       octets: typing.Union[None, int] = None,
-      _from: typing.Union[None, bool, str] = None,
-      _from_exc: typing.Union[Exception, None] = None,
+      factory_meth: typing.Union[None, bool, str,
+          typing.Callable[...,'cls']] = None,
       **kwgs
     ) -> 'cls':
     """
@@ -122,37 +131,44 @@ class BaseBytes(bytes):
     object the data represent.
     """
     inst = None
-    first_arg = args[0] if args else None
-    if first_arg is None and not kwgs:
-      return cls.default()
-    elif hasattr(first_arg, 'decode'): # is bytes-like
-      _from = False
-    if _from is not False:
-      for name in cls._FROM_ORDER:
-        attr_name = 'from_{}'.format(name)
-        if (inst is None
-            and _from in (None, True, name)
-            and hasattr(cls, attr_name)):
-          try:
-            inst = getattr(cls, attr_name)(*args,
-                check_octets = check_octets,
-                octets = octets,
-                **kwgs)
-          except (ValueError, TypeError) as e:
-            _from_exc = e
-          else:
-            _from_exc = None
-      if _from is not None and _from_exc:
-        raise _from_exc
+    if 1 < len(args):
+      efs = ('{}() takes at most 1 positional argument but {} '
+          'were given')
+      raise TypeError(efs.format(cls.__name__, len(args)))
+    arg = args[0] if args else None
+    factory_meth_exc = None
+    if hasattr(arg, 'decode'): # is bytes-like
+      pass
+    elif factory_meth in (True, None):
+      for method_name in cls._FACTORY_METH_ORDER:
+        try:
+          inst = getattr(cls, method_name)(arg,
+              check_octets=check_octets, **kwgs)
+        except (ValueError, TypeError) as e:
+          factory_meth_exc = e
+        else:
+          if inst is not None:
+            factory_meth_exc = None
+            break
+      else:
+        if factory_meth is True and factory_meth_exc:
+          raise factory_meth_exc
+    elif factory_meth:
+      if hasattr(factory_meth, '__call__'):
+        fmethod = factory_meth
+      else:
+        fmethod = getattr(cls, factory_meth)
+      inst = fmethod(*args, check_octets=check_octets, **kwgs)
     if inst is None:
       inst = super().__new__(cls, *args, **kwgs)
+    has_cls_octets = cls._octets is None  # μ-o
     if octets:
-      if cls._octets is not None:
+      if not has_cls_octets:
         efs = ('{}: attempt to set instance octets for a fixed '
             'size data')
         raise ValueError(efs.format(cls.__name__))
       inst._octets = octets
-    elif cls._octets is None:
+    elif has_cls_octets:
       inst._octets = 8 * len(inst)
     if check_octets:
       inst._check_octets()
@@ -167,7 +183,10 @@ class BaseBytes(bytes):
 
   # abstract classmethod
   @classmethod
-  def default(cls) -> 'cls':
+  @eliminate_first_arg_if_none
+  def default(cls,
+      check_octets: bool = False,  # should be overridden
+    ) -> 'cls':
     "Create a default instance or raise TypeError"
     raise TypeError('default not defined')
 
@@ -195,7 +214,7 @@ class BaseBytes(bytes):
     if len(ints) != exp_len:
       efs = 'expected number of integers was {}; got {}'
       raise ValueError(efs.format(exp_len, len(ints)))
-    kwgs['_from'] = False
+    kwgs['factory_meth'] = False
     return cls(ints, **kwgs)
 
   @classmethod
@@ -224,12 +243,13 @@ class BaseBytes(bytes):
     if len(ints) != exp_len:
       efs = 'expected number of hexdigits was {}; got {}'
       raise ValueError(efs.format(exp_len, len(ints)))
-    kwgs['_from'] = False
+    kwgs['factory_meth'] = False
     return cls(_bconv.str2ints(ints, ignored=ignored), **kwgs)
 
   # abstract classmethod
   @classmethod
-  def from_obj(cls, obj: typing.Any) -> 'cls':
+  @none_if_first_arg_is_none
+  def from_obj(cls, obj: typing.Any, **kwgs) -> 'cls':
     "Create an instance from the given object."
     raise NotImplementedError('must be defined by subclasses')
 
@@ -252,7 +272,7 @@ class BaseBytes(bytes):
     * ValueError if the size by the given value would be wrong.
 
     Return (num_bytes, exp_num_bytes, exp_num_bits) tuple, which
-    is a microoptimalization for subclasses which should define
+    is a micro-optimization for subclasses which should define
     their _check_octets() with the following first two lines:
       t_ = super()._check_octets()
       num_bytes, exp_num_bytes, exp_num_bits = t_
@@ -290,6 +310,18 @@ class Bytes(BaseBytes):
   is checked during instatntiation.
   """
   BITWISE, BYTEWISE = False, True
+
+  def __new__(cls, *args,
+      check_octets: bool = True,
+      factory_meth: typing.Union[None, bool, str,
+          typing.Callable[...,'cls']] = None,
+      **kwgs
+    ) -> 'cls':
+    # TODO: docstring
+    return super().__new__(cls, *args,
+        check_octets = check_octets,
+        factory_meth = factory_meth,
+        **kwgs)
 
   def _check_octets(self) -> typing.Tuple[int, int, int]:
     """
@@ -369,12 +401,12 @@ class Bits(BaseBytes):
 
 class DictBytes(Bytes):
   # TODO: docstring
-  _FROM_ORDER = ('items',)
+  _FACTORY_METH_ORDER = ('from_items', 'default')
   _octets = None
   _schema = _MappingProxyType({})
 
   @staticmethod
-  def _bytes_from_items(items):
+  def _bytesfactory_meth_items(items):
     if hasattr(items, 'values'):
       gen = items.values()
     else:
@@ -412,24 +444,20 @@ class DictBytes(Bytes):
     return bytes_
 
   @staticmethod
-  def _schema_from_tuple(
+  def _schemafactory_meth_tuple(
       t: typing.Tuple[typing.Tuple[str, type]]
     ) -> _MappingProxyType:
     return _MappingProxyType(_collections.OrderedDict(t))
 
   def __new__(cls, *args,
       check_octets: bool = True,
-      octets: typing.Union[None, int] = None,
-      _from: typing.Union[None, bool, str] = None,
-      _from_exc: typing.Union[Exception, None] = None,
+      factory_meth: typing.Union[None, bool, str] = None,
       _items: typing.Union[None, _MappingProxyType] = None,
       **kwgs
     ) -> 'cls':
     inst = super().__new__(cls, *args,
         check_octets = False,
-        octets = octets,
-        _from = _from,
-        _from_exc = _from_exc,
+        factory_meth = factory_meth,
         **kwgs)
     if _items:
       inst._items = _items
@@ -447,7 +475,8 @@ class DictBytes(Bytes):
     return cls._schema.keys()
 
   @classmethod
-  def default(cls) -> 'cls':
+  @eliminate_first_arg_if_none
+  def default(cls, *, check_octets:bool=False, **kwgs) -> 'cls':
     """
     Create a default instance
     """
@@ -455,12 +484,12 @@ class DictBytes(Bytes):
         for (item_name, item_cls) in cls._schema.items()})
 
   @classmethod
+  @none_if_first_arg_is_none
   def from_items(cls,
       _dict: typing.Union[None, dict] = None,
       *,
       check_octets: bool = True,
-      octets: typing.Union[None, int] = None,
-      _from_obj: bool = False,
+      from_obj: bool = False,
       **itms
     ) -> 'cls':
     "Create an instance from items" # TODO more docstring
@@ -479,7 +508,7 @@ class DictBytes(Bytes):
     _items = _collections.OrderedDict()
     for item_name, item_cls in cls._schema.items():
       item_obj = _dict.get(item_name)
-      if _from_obj:
+      if from_obj:
         item_inst = item_cls.from_obj(item_obj)
       elif item_obj is None:
         try:
@@ -490,18 +519,19 @@ class DictBytes(Bytes):
       else:
         item_inst = item_cls(item_obj)
       _items[item_name] = item_inst
-    arg = cls._bytes_from_items(_items)
+    arg = cls._bytesfactory_meth_items(_items)
     _items = _MappingProxyType(_items)
-    return cls(arg, check_octets=check_octets, octets=octets,
-        _from=False, _items=_items)
+    return cls(arg, check_octets=check_octets,
+      factory_meth=False, _items=_items)
 
   @classmethod
+  @none_if_first_arg_is_none
   def from_obj(cls,
       _dict: typing.Union[None, dict] = None,
       **itms
     ) -> 'cls':
     "Create an instance from a dictionary" # TODO more docstring
-    return cls.from_items(_dict, _from_obj=True, **itms)
+    return cls.from_items(_dict, from_obj=True, **itms)
 
   def __getitem__(self, item):
     if isinstance(item, str):
@@ -584,7 +614,7 @@ class PadBit(Bits):
       num_bytes, num_bits = divmod(cls._octets, 8)
       num_bytes += bool(num_bits)
       args = bytes(num_bytes),
-      kwgs['_from'] = False
+      kwgs['factory_meth'] = False
     return super().__new__(cls, *args, **kwgs)
 
   @classmethod
@@ -615,3 +645,6 @@ def PadBits(octets):
 
 
 del typing
+
+del eliminate_first_arg_if_none
+del none_if_first_arg_is_none

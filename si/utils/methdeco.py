@@ -27,12 +27,23 @@ class classproperty:
       raise AttributeError("can't delete class attribute")
 
 
-def default_if_none(m):
+def eliminate_first_arg_if_none(m):
   # TODO: improve, docstring
   @_wraps(m)
-  def wrapped(cls, val, *args, **kwgs):
-    if val is None:
-      return cls.default()
+  def wrapped(cls, *args, **kwgs):
+    if args and args[0] is None:
+      return m(cls, *args[1:], **kwgs)
     else:
-      return m(cls, val, *args, **kwgs)
+      return m(cls, *args, **kwgs)
+  return wrapped
+
+
+def none_if_first_arg_is_none(m):
+  # TODO: improve, docstring
+  @_wraps(m)
+  def wrapped(cls, *args, **kwgs):
+    if args and args[0] is None:
+      return None
+    else:
+      return m(cls, *args, **kwgs)
   return wrapped

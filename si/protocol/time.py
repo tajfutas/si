@@ -2,7 +2,9 @@ import typing
 
 import si.common as _common
 from si.utils import objbytes
-from si.utils.methdeco import default_if_none
+from si.utils.methdeco import eliminate_first_arg_if_none, \
+    none_if_first_arg_is_none
+
 
 class DayOfWeekBits(objbytes.Bits):
   """
@@ -24,11 +26,12 @@ class DayOfWeekBits(objbytes.Bits):
   _octets = 0o3
 
   @classmethod
-  def default(cls) -> 'cls':
-    return cls((0b111,), check_octets=False, _from=False)
+  @eliminate_first_arg_if_none
+  def default(cls, *, check_octets:bool=False, **kwgs) -> 'cls':
+    return cls((0b111,), check_octets=False, factory_meth=False)
 
   @classmethod
-  @default_if_none
+  @none_if_first_arg_is_none
   def from_obj(cls,
       obj: typing.Union[None, _common.DayOfWeek, str, int],
       **kwgs
@@ -46,7 +49,7 @@ class DayOfWeekBits(objbytes.Bits):
       o = [obj.value]
     elif isinstance(obj, str):
       o = [_common.DayOfWeek[obj.title()].value]
-    kwgs['_from'] = False
+    kwgs['factory_meth'] = False
     return cls(o, **kwgs)
 
   def isoweekday(self) -> int:
@@ -79,19 +82,21 @@ class FourWeekCounterRelativeBits(objbytes.Bits):
   _octets = 0o2
 
   @classmethod
-  def default(cls) -> 'cls':
-    return cls((0b00,), check_octets=False, _from=False)
+  @eliminate_first_arg_if_none
+  def default(cls, *, check_octets:bool=False, **kwgs) -> 'cls':
+    return cls((0b00,), check_octets=False, factory_meth=False)
 
   @classmethod
-  @default_if_none
+  @none_if_first_arg_is_none
   def from_obj(cls,
       obj: typing.Union[None, int],
-      **kwgs) -> 'cls':
+      **kwgs
+    ) -> 'cls':
     """
     Create a FourWeekCounterRelativeBits instance from the given
     integer
     """
-    kwgs['_from'] = False
+    kwgs['factory_meth'] = False
     return cls([obj], **kwgs)
 
   def obj(self) -> int:
@@ -111,11 +116,12 @@ class HalfDayBit(objbytes.Bits):
   _octets = 0o1
 
   @classmethod
-  def default(cls) -> 'cls':
-    return cls((0b0,), check_octets=False, _from=False)
+  @eliminate_first_arg_if_none
+  def default(cls, *, check_octets:bool=False, **kwgs) -> 'cls':
+    return cls((0b0,), check_octets=False, factory_meth=False)
 
   @classmethod
-  @default_if_none
+  @none_if_first_arg_is_none
   def from_obj(cls,
       obj: typing.Union[None, _common.DayOfWeek, str, int],
       **kwgs
@@ -133,7 +139,7 @@ class HalfDayBit(objbytes.Bits):
     elif isinstance(obj, str):
       s_normal = obj.lower().replace('.','').replace(' ', '')
       o = [_common.HalfDay[s_normal].value]
-    kwgs['_from'] = False
+    kwgs['factory_meth'] = False
     return cls(o, **kwgs)
 
   def obj(self) -> _common.HalfDay:
@@ -143,7 +149,7 @@ class HalfDayBit(objbytes.Bits):
 
 class TDByte(objbytes.DictBytes):
   _octets = 0o10
-  _schema = objbytes.DictBytes._schema_from_tuple((
+  _schema = objbytes.DictBytes._schemafactory_meth_tuple((
       ("pad", objbytes.PadBits(2)),
       ("fourweekcrel", FourWeekCounterRelativeBits),
       ("dayofweek", DayOfWeekBits),
@@ -154,4 +160,5 @@ class TDByte(objbytes.DictBytes):
 del typing
 
 del objbytes
-del default_if_none
+del eliminate_first_arg_if_none
+del none_if_first_arg_is_none
