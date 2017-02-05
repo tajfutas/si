@@ -9,7 +9,7 @@ from .. import bconv as _bconv
 from .. import factorymethod
 
 
-class NamedTupleBytesMeta(type):
+class NamedTupleBytesMeta(base.ObjBytesMeta):
 
   def __new__(cls, typename, bases, ns):
     if ns.get('_root', False) or ns.get('_untampered', False):
@@ -24,12 +24,12 @@ class NamedTupleBytesMeta(type):
     ns['_schema'] = schema
     return super().__new__(cls, typename, bases, ns)
 
-  @property
+  @property  # classproperty
   def schema(cls):
     "NamedTuple of Data Schema"
     return cls._schema
 
-  @property
+  @property  # classproperty
   def tpl(cls):
     "NamedTuple class of the underlying object."
     return cls._tpl

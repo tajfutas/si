@@ -6,7 +6,20 @@ from . import bconv as _bconv
 from . import factorymethod
 
 
-class ObjBytes(bytes):
+
+class ObjBytesMeta(type):
+
+  @property  # classproperty
+  def default_mode(cls):
+    "False if the default mode is bytewise, True if bitwise."
+    try:
+      return sorted(cls._modes, reverse=True)[0]
+    except IndexError:
+      msg = 'no mode is allowed for the class'
+      raise RuntimeError(msg) from None
+
+
+class ObjBytes(bytes, metaclass=ObjBytesMeta):
   """
   Baseclass of all objbytes classes. Subclass of bytes.
   Every objbytes class should be inherited by this class.
@@ -55,7 +68,7 @@ class ObjBytes(bytes):
   instantiated by passing no arguments to the class.
   """
 
-  _SERA_FMETH_ORDER = ('from_obj', 'default')
+  _sera_fmeth_order = ('from_obj', 'default')
                       # type: typing.Tuple[str]
   """
   During serialization attempt (see help of __new__), this tuple
@@ -79,6 +92,9 @@ class ObjBytes(bytes):
   Must be overridden by subclasses.
   """
 
+  _modes = frozenset((1, 8))
+  # TODO: docstring
+
   def __new__(cls, *args,
       check_bitsize: bool = True,
       bitsize: typing.Union[None, int] = None,
@@ -98,7 +114,7 @@ class ObjBytes(bytes):
     object (checked for having a 'decode' method), or if
     factory_meth is True.
 
-    During serialization attempt, _SERA_FMETH_ORDER tuple is
+    During serialization attempt, _sera_fmeth_order tuple is
     looped over for factory method names whose corresponding
     factory method is then attempted to provide an instance
     without errors. If none of them is capable to do that and
@@ -131,17 +147,17 @@ class ObjBytes(bytes):
     argument, especially to speed up instantiation of tested
     code.
     """
+    clsname = cls.__name__
     inst = None
     if 1 < len(args):
-      efs = ('{}() takes at most 1 positional argument but {} '
-          'were given')
-      raise TypeError(efs.format(cls.__name__, len(args)))
+      raise TypeError((f'{clsname}() takes at most 1 '
+          f'positional argument but {len(args)} were given'))
     arg = args[0] if args else None
     factory_meth_exc = None
     if factory_meth is None and hasattr(arg, 'decode'):
       pass  # is bytes-like, delegated to super().__new__()
     elif factory_meth is None or factory_meth is True:
-      for method_name in cls._SERA_FMETH_ORDER:
+      for method_name in cls._sera_fmeth_order:
         try:
           inst = getattr(cls, method_name)(arg,
               check_bitsize=check_bitsize, **kwgs)
@@ -166,12 +182,12 @@ class ObjBytes(bytes):
     has_cls_bitsize = cls._bitsize is None  # μ-o
     if bitsize:
       if not has_cls_bitsize:
-        efs = ('{}: attempt to set instance bitsize for a '
-            'fixed size data')
-        raise ValueError(efs.format(cls.__name__))
+        raise ValueError((f'{clsname}: attempt to set instance '
+            'bitsize for a fixed size data'))
       inst._bitsize = bitsize
     elif has_cls_bitsize:
       inst._bitsize = 8 * len(inst)
+    del inst.mode  # sets mode to class default
     if check_bitsize:
       inst._check_bitsize()
     return inst
@@ -181,7 +197,13 @@ class ObjBytes(bytes):
         super().__repr__())
 
   def __str__(self):
-    return _bconv.ints2str(self)
+    mode = self.mode  # μ-o
+    if mode == 8:
+      return _bconv.ints2str(self)
+    elif mode == 1:
+      return _bconv.bits2str(_bconv.ints2bits(self))
+    else:
+      raise RuntimeError(f'unexpected mode: {mode}')
 
   # abstract classmethod
   @classmethod
@@ -191,6 +213,26 @@ class ObjBytes(bytes):
     ) -> 'cls':
     "Create a default instance or raise TypeError"
     raise TypeError('default not defined')
+
+  @classmethod
+  def from_bits(cls,
+      b: typing.Iterable[int],
+      **kwgs
+    ) -> 'cls':
+    """
+    Create an instance from the given iterable of bits
+    (integers of range 0--1).
+    """
+    exp_len = cls._bitsize
+    iter_b = iter(b)
+    bits = [next(iter_b) for _ in range(exp_len)]
+    if len(bits) != exp_len:
+      efs = 'expected number of bits was {}; got {}'
+      raise ValueError(efs.format(exp_len, len(bits)))
+    exp_num_bytes, exp_num_bits = divmod(exp_len, 8)
+    num_pad_bits = 8 - exp_num_bits
+    ints = _bconv.bits2ints([0] * num_pad_bits + bits)
+    return cls.from_ints(ints)
 
   @classmethod
   def from_ints(cls,
@@ -224,29 +266,40 @@ class ObjBytes(bytes):
       s: typing.Iterable[str],
       *,
       ignored: str = ' _|',
+      mode: typing.Union[None, int] = None,
       **kwgs
     ) -> 'cls':
     """
     Create an instance from an iterable that should yield
-    character strings of hexdigit pairs.
+    character strings.
 
-    For more info, see help page of si.utils.bconv.str2bytes().
+    The behavior is determinde by the mode parameter which
+    defaults to cls.default_mode if not set explicitely.
+
+    If mode == 8 (bytewise) then the iterable should yield
+    hexdigit pairs. For more info, see help page of
+    bconv.str2ints().
+
+    If mode == 1 (bitwise) then the iterable should yield
+    bitdigits. For more info, see help page of bconv.str2bits().
 
     Consumes only the required number of characters from the
     given iterable which determines the data. Note that this may
     be more than the actual content of the data (i.e. when end
     of an array is indicated by a specific value).
     """
-    exp_num_bytes, exp_num_bits = divmod(cls._bitsize, 8)
-    exp_len = exp_num_bytes + bool(exp_num_bits)
-    exp_len *= 2  # pairs of hexdigits per byte
-    iter_s = iter(s)
-    ints = [next(iter_s) for _ in range(exp_len)]
-    if len(ints) != exp_len:
-      efs = 'expected number of hexdigits was {}; got {}'
-      raise ValueError(efs.format(exp_len, len(ints)))
-    kwgs['factory_meth'] = False
-    return cls(_bconv.str2ints(ints, ignored=ignored), **kwgs)
+    if mode is None:
+      mode = cls.default_mode
+    if mode == 8:
+      i = _bconv.str2ints(s, ignored=ignored)
+      return cls.from_ints(i)
+    elif mode == 1:
+      b = _bconv.str2bits(s, bitchars=bitchars, ignored=ignored)
+      return cls.from_bits(b)
+    else:
+      msg = 'invalid mode: 8 (bytewise) or 1 (bitwise) expected'
+      raise ValueError(msg)
+
 
   # abstract classmethod
   @classmethod
@@ -274,6 +327,25 @@ class ObjBytes(bytes):
     else:
       return self._bitsize
 
+  @property
+  def mode(self) -> bool:
+    return self._mode
+  @mode.setter
+  def mode(self, value: int):
+    if value in self._modes:
+      self._mode = value
+    else:
+      msg = 'mode not allowed (allowed modes: {})'
+      modes = sorted(str(m) for m in self._modes)
+      raise ValueError(msg.format(', '.join(modes)))
+  @mode.deleter
+  def mode(self):
+    self._mode = self.__class__.default_mode
+
+  @property
+  def modes(self) -> bool:
+    return self._modes
+
   def _check_bitsize(self) -> typing.Tuple[int, int, int]:
     """
     Check bitsize.
@@ -293,11 +365,23 @@ class ObjBytes(bytes):
     num_bytes = len(self)
     exp_num_bytes, exp_num_bits = divmod(self.bitsize, 8)
     exp_num_bytes_ = exp_num_bytes + bool(exp_num_bits)
+    clsname = self.__class__.__name__
     if exp_num_bytes_ != num_bytes:
-      efs = '{}: invalid length (expected {}): {}'
-      raise ValueError(efs.format(self.__class__.__name__,
-          exp_num_bytes_, num_bytes))
-    return num_bytes, exp_num_bytes, exp_num_bits
+      raise ValueError((f'{clsname}: invalid length '
+          f'(expected {exp_num_bytes_}): {num_bytes}'))
+    mode = self.mode  # μ-o
+    if mode == 8:
+      if exp_num_bits:
+        raise RuntimeError((f'{clsname}: invalid cls._bitsize '
+            'in bytwise mode: it must be divisible with 8 '
+            'without remainder'))
+    elif mode == 1:
+      if self[0] & 2**8-2**exp_num_bits:
+        raise ValueError((f'{clsname}: first value expected '
+            f'to be less than {2**exp_num_bits}'))
+    else:
+      raise RuntimeError(f'unexpected mode: {mode}')
+    return num_bytes, exp_num_bytes, exp_num_bits  # μ-o
 
   # abstract method
   @classmethod
@@ -329,24 +413,6 @@ class Bytes(ObjBytes):
         factory_meth = factory_meth,
         **kwgs)
 
-  def _check_bitsize(self) -> typing.Tuple[int, int, int]:
-    """
-    Validate datasize.
-
-    For more info, see BaseBytes._check_bitsize()
-    """
-    t_ = super()._check_bitsize()
-    num_bytes, exp_num_bytes, exp_num_bits = t_
-    if exp_num_bits:
-      efs = ('{}: invalid cls._bitsize for Bytes: it must ',
-          'be divisible by 8 without remainder')
-      raise RuntimeError(efs.format(self.__class__.__name__))
-    if exp_num_bytes != len(self):
-      efs = '{}: invalid length (expected {}): {}'
-      raise ValueError(efs.format(self.__class__.__name__,
-          exp_num_bytes, len(self)))
-    return num_bytes, exp_num_bytes, exp_num_bits
-
 
 class Bits(ObjBytes):
   """
@@ -359,55 +425,6 @@ class Bits(ObjBytes):
   def __new__(cls, *args, **kwgs) -> 'cls':
     # TODO: docstring
     return super().__new__(cls, *args, **kwgs)
-
-  def __str__(self):
-    return _bconv.bits2str(_bconv.ints2bits(self))
-
-  @classmethod
-  def from_bits(cls,
-      b: typing.Iterable[int],
-      **kwgs
-    ) -> 'cls':
-    """
-    Create an instance from the given iterable of bits
-    (integers of range 0--1).
-    """
-    exp_len = cls._bitsize
-    iter_b = iter(b)
-    bits = [next(iter_b) for _ in range(exp_len)]
-    if len(bits) != exp_len:
-      efs = 'expected number of bits was {}; got {}'
-      raise ValueError(efs.format(exp_len, len(bits)))
-    exp_num_bytes, exp_num_bits = divmod(exp_len, 8)
-    num_pad_bits = 8 - exp_num_bits
-    ints = _bconv.bits2ints([0] * num_pad_bits + bits)
-    return cls.from_ints(ints)
-
-  @classmethod
-  def from_str(cls,
-      s: typing.Iterable[str],
-      *,
-      bitchars: typing.Union[None, str] = None,
-      ignored: str = ' _|',
-    ) -> 'cls':
-    """
-    Create an instance from the given iterable that should
-    yield character strings of bitdigits.
-
-    See si.utils.bconv.str2bits()
-    """
-    b = _bconv.str2bits(s, bitchars=bitchars, ignored=ignored)
-    return cls.from_bits(b)
-
-  def _check_bitsize(self) -> typing.Tuple[int, int, int]:
-    "See BaseBytes._check_bitsize()"
-    t_ = super()._check_bitsize()
-    num_bytes, exp_num_bytes, exp_num_bits = t_
-    if self[0] & 2**8-2**exp_num_bits:
-      efs = '{}: first value expected to be less than {}'
-      raise ValueError(efs.format(self.__class__.__name__,
-          2**exp_num_bits))
-    return num_bytes, exp_num_bytes, exp_num_bits
 
 
 del typing
