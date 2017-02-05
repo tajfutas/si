@@ -3,10 +3,8 @@
 from .. import base
 
 
-class PadBit(base.Bits):
+class PadBase(base.ObjBytes):
   # TODO: docstring
-
-  _bitsize = 0o1
 
   def __new__(cls, *args, **kwgs) -> 'cls':
     if not args:
@@ -38,12 +36,40 @@ class PadBit(base.Bits):
     return None
 
 
+def Pad(bitsize, modes):
+  # TODO: docstring
+  return PadBase.new_subtype('Pad', _bitsize=bitsize,
+      _modes=modes)
+
+
+class PadBit(PadBase):
+  # TODO: docstring
+
+  _bitsize = 0o1
+  _modes = frozenset((1,))
+
+
 def PadBits(bitsize):
   # TODO: docstring
   if bitsize == 1:
     return PadBit
   else:
     return PadBit.new_subtype('PadBits', _bitsize=bitsize)
+
+
+class PadByte(PadBase):
+  # TODO: docstring
+
+  _bitsize = 0o10
+  _modes = frozenset((8,))
+
+
+def PadBytes(bytesize):
+  # TODO: docstring
+  if bytesize == 1:
+    return PadByte
+  else:
+    return PadByte.new_subtype('PadBytes', _bitsize=8*bytesize)
 
 
 del base

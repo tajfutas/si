@@ -22,6 +22,8 @@ class NamedTupleBytesMeta(base.ObjBytesMeta):
     ns['_tpl'] = tpl
     schema = tpl(*(c for n, c in t))
     ns['_schema'] = schema
+    if '_bitsize' not in ns:
+      ns['_bitsize'] = sum(c._bitsize for n, c in t)
     return super().__new__(cls, typename, bases, ns)
 
   @property  # classproperty
@@ -35,7 +37,7 @@ class NamedTupleBytesMeta(base.ObjBytesMeta):
     return cls._tpl
 
 
-class NamedTupleBytes(base.Bytes,
+class NamedTupleBytes(base.ObjBytes,
     metaclass=NamedTupleBytesMeta):
   # TODO: docstring
   _root = True
@@ -144,7 +146,7 @@ class NamedTupleBytes(base.Bytes,
               # known size: faster to set than append to empty
     fielditems = zip(schema._fields, schema)
     for i, (field_name, field_cls) in enumerate(fielditems):
-      field_obj = arg.get(field_name)
+      field_obj = arg[i]
       if from_obj:
         field_inst = field_cls.from_obj(field_obj)
       elif field_obj is None:
@@ -154,6 +156,7 @@ class NamedTupleBytes(base.Bytes,
           efs = 'field must be defined explicitely: {}'
           raise TypeError(efs.format(field_name)) from None
       else:
+        print([field_cls, field_obj])
         field_inst = field_cls(field_obj)
       _fields[i] = field_inst
     arg = cls._get_bytes(_fields)
@@ -184,12 +187,12 @@ class NamedTupleBytes(base.Bytes,
   def _check_bitsize(self) -> typing.Tuple[int, int, int]:
     "See BaseBytes._check_bitsize()"
     t_ = super()._check_bitsize()
-    if self.__class__._bitsize is not None:
-      return t_
+    exp_bitsize = self.__class__._bitsize
+    if exp_bitsize is not None:
+      return t_  # already checked by super
     else:
       num_bytes, exp_num_bytes, exp_num_bits = t_
       bitsize = 8 * exp_num_bytes + exp_num_bits
-      exp_bitsize = self._get_bitsize()
       if bitsize != exp_bitsize:
         efs = '{}: invalid bitsize (expected {}): {}'
         raise ValueError(efs.format(self.__class__.__name__,
@@ -201,18 +204,18 @@ class NamedTupleBytes(base.Bytes,
     _fields = [None] * len(schema)
               # known size: faster to set than append to empty
     fielditems = zip(schema._fields, schema)
-    bitwise = False
+    mode = 8
     o = 0
     for i, (field_name, field_cls) in enumerate(fielditems):
-      field_bitwise = field_cls.BITWISE
-      if bitwise and not field_bitwise:
-        aes = ('switching to bytewise: bitsize index must have '
-            'no remainder after divided by 8')
-        assert not o % 8, aes
-      bitwise = field_bitwise
+      if mode not in field_cls._modes:
+        if mode == 8:
+          aes = ('switching to bytewise: bitsize index must '
+              'have no remainder after divided by 8')
+          assert not o % 8, aes
+        mode = field_cls.default_mode
       o_num_bytes, o_num_bits = divmod(o, 8)
       gen = self[o_num_bytes:]
-      if bitwise:
+      if mode == 1:
         clsmeth_name = 'from_bits'
         gen = _bconv.ints2bits(gen)
         # throw away
@@ -229,9 +232,6 @@ class NamedTupleBytes(base.Bytes,
       _fields[i] = field_inst
       o += field_inst.bitsize
     return self.tpl(*_fields)
-
-  def _get_bitsize(self):
-    return sum(f.bitsize for f in self.fields)
 
   def obj(self):
     return self.__class__.tpl(*(field.obj()

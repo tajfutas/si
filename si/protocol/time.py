@@ -4,7 +4,7 @@ import si.common as _common
 from si.utils import objbytes
 
 
-class DayOfWeekBits(objbytes.base.Bits):
+class DayOfWeekBits(objbytes.base.ObjBytes):
   """
   Day of week stored in three bits.
 
@@ -22,6 +22,7 @@ class DayOfWeekBits(objbytes.base.Bits):
   # SPORTident 9e291aa \DayOfWeek.cs
 
   _bitsize = 0o3
+  _modes = frozenset((1,))
 
   @classmethod
   @objbytes.factorymethod.default
@@ -72,7 +73,7 @@ class DayOfWeekBits(objbytes.base.Bits):
     return _common.DayOfWeek(int.from_bytes(self, 'big'))
 
 
-class FourWeekCounterRelativeBits(objbytes.base.Bits):
+class FourWeekCounterRelativeBits(objbytes.base.ObjBytes):
   # TODO: more explanation
   """
   Four week counter relative stored in two bits.
@@ -81,6 +82,7 @@ class FourWeekCounterRelativeBits(objbytes.base.Bits):
   # PCPROG5 (pp. 17, 19)
 
   _bitsize = 0o2
+  _modes = frozenset((1,))
 
   @classmethod
   @objbytes.factorymethod.default
@@ -108,7 +110,7 @@ class FourWeekCounterRelativeBits(objbytes.base.Bits):
     return int.from_bytes(self, 'big')
 
 
-class HalfDayBit(objbytes.base.Bits):
+class HalfDayBit(objbytes.base.ObjBytes):
   """Half day value in one bit
 
   0b0  AM
@@ -118,6 +120,7 @@ class HalfDayBit(objbytes.base.Bits):
   # PCPROG5 (pp. 17, 19)
 
   _bitsize = 0o1
+  _modes = frozenset((1,))
 
   @classmethod
   @objbytes.factorymethod.default

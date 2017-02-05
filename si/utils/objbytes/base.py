@@ -163,7 +163,6 @@ class ObjBytes(bytes, metaclass=ObjBytesMeta):
               check_bitsize=check_bitsize, **kwgs)
         except (ValueError, TypeError) as e:
           factory_meth_exc = e
-          raise
         else:
           if inst is not None:
             factory_meth_exc = None
@@ -196,8 +195,9 @@ class ObjBytes(bytes, metaclass=ObjBytesMeta):
     return '{}({})'.format(self.__class__.__name__,
         super().__repr__())
 
-  def __str__(self):
-    mode = self.mode  # μ-o
+  def __str__(self, mode: typing.Union[None, int]=None) -> str:
+    if mode is None:
+      mode = self.mode
     if mode == 8:
       return _bconv.ints2str(self)
     elif mode == 1:
@@ -251,6 +251,9 @@ class ObjBytes(bytes, metaclass=ObjBytesMeta):
     more than the actual content of the data (i.e. when end of
     an array is indicated by a specific value).
     """
+    if cls._bitsize is None:
+      raise RuntimeError((f'{cls.__name__}: from_ints() must '
+          'be define for variable size objbytes subclasses'))
     exp_num_bytes, exp_num_bits = divmod(cls._bitsize, 8)
     exp_len = exp_num_bytes + bool(exp_num_bits)
     iter_i = iter(i)
@@ -388,43 +391,6 @@ class ObjBytes(bytes, metaclass=ObjBytesMeta):
   def obj(self) -> typing.Any:
     "Return the object the data represent."
     raise NotImplementedError('must be defined by subclasses')
-
-
-class Bytes(ObjBytes):
-  """
-  Base class of all objbytes objects which are represented by
-  bytes and not bits.
-
-  Its bitsize must be divisible by 8 without remainder and that
-  is checked during instatntiation.
-  """
-  # TODO: docstring
-  BITWISE, BYTEWISE = False, True
-
-  def __new__(cls, *args,
-      check_bitsize: bool = True,
-      factory_meth: typing.Union[None, bool, str,
-          typing.Callable[...,'cls']] = None,
-      **kwgs
-    ) -> 'cls':
-    # TODO: docstring
-    return super().__new__(cls, *args,
-        check_bitsize = check_bitsize,
-        factory_meth = factory_meth,
-        **kwgs)
-
-
-class Bits(ObjBytes):
-  """
-  Base class of all objbytes objects which are represented by
-  bits and not bytes.
-  """
-  # TODO: docstring
-  BITWISE, BYTEWISE = True, False
-
-  def __new__(cls, *args, **kwgs) -> 'cls':
-    # TODO: docstring
-    return super().__new__(cls, *args, **kwgs)
 
 
 del typing
