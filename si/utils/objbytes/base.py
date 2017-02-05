@@ -1,4 +1,10 @@
-#TODO: docstring
+"""
+This module has the ObjBytes class which is the baseclass of all
+objbytes objects and is also a subclass of bytes.
+Every objbytes class should be inherited by ObjBytes some way.
+
+For more info see help page of ObjBytes.
+"""
 
 import typing
 
@@ -13,7 +19,7 @@ class ObjBytesMeta(type):
   def default_mode(cls):
     "False if the default mode is bytewise, True if bitwise."
     try:
-      return sorted(cls._modes, reverse=True)[0]
+      return cls._modes[0]
     except IndexError:
       msg = 'no mode is allowed for the class'
       raise RuntimeError(msg) from None
@@ -21,8 +27,9 @@ class ObjBytesMeta(type):
 
 class ObjBytes(bytes, metaclass=ObjBytesMeta):
   """
-  Baseclass of all objbytes classes. Subclass of bytes.
-  Every objbytes class should be inherited by this class.
+  Baseclass of all objbytes objects and is also a subclass of
+  bytes. Every objbytes class should be inherited by ObjBytes
+  some way.
 
   Subclasses must define the following
   * class constant:
@@ -66,34 +73,41 @@ class ObjBytes(bytes, metaclass=ObjBytesMeta):
 
   If the subclass has a default value, then it can be
   instantiated by passing no arguments to the class.
-  """
 
-  _sera_fmeth_order = ('from_obj', 'default')
-                      # type: typing.Tuple[str]
-  """
-  During serialization attempt (see help of __new__), this tuple
-  is looped over for factory method names whose corresponding
-  factory method is then attempted to provide an instance
-  without errors.
+  Class constants and their descriptions:
 
-   Defines the fallback order of factory methods which are
-  attempted to return an instance for the given arguments
-  by __new__() before finally falling back to the superclass'
-  (bytes) __new__(),  . If the factory method
-  return None that triggers a fallback. ValueError and TypeError
-  exceptions are also causing a fallback. If however __new__ was
-  called with a factory_meth = True attribute then these
-  exceptions are raised before the final fallback.
+  * _bitsize = NotImplemented
+
+    Size of the serialized data in bits or None if variable
+    size. Important! Must be overridden by subclasses.
+
+  * _modes = 8, 1
+
+    Frozenset of allowed modes of the data. Here 8 means that
+    bytewise mode is allowed and 1 means the bitwise mode is
+    also allowed. The first value is considered the default.
+
+  * _sera_fmeth_order = ('from_obj', 'default')
+
+    During serialization attempt (see help of __new__), this
+    tuple is looped over for factory method names whose
+    corresponding factory method is then attempted to provide an
+    instance without errors.
+
+    Defines the fallback order of factory methods which are
+    attempted to return an instance for the given arguments
+    by __new__() before finally falling back to the superclass'
+    (bytes) __new__(),  . If the factory method
+    return None that triggers a fallback. ValueError and
+    TypeError exceptions are also causing a fallback. If however
+    __new__ was called with a factory_meth = True attribute then
+    these exceptions are raised before the final fallback.
   """
 
   _bitsize = NotImplemented  # type: typing.Union[None, int]
-  """
-  Size of the serialized data in bits or None if variable size.
-  Must be overridden by subclasses.
-  """
-
-  _modes = frozenset((1, 8))
-  # TODO: docstring
+  _sera_fmeth_order = ('from_obj', 'default')
+                      # type: typing.Tuple[str]
+  _modes = 8, 1  # type: typing.Tuple[int]
 
   def __new__(cls, *args,
       check_bitsize: bool = True,
@@ -339,14 +353,15 @@ class ObjBytes(bytes, metaclass=ObjBytesMeta):
       self._mode = value
     else:
       msg = 'mode not allowed (allowed modes: {})'
-      modes = sorted(str(m) for m in self._modes)
+      modes = [str(m) for m in self._modes]
       raise ValueError(msg.format(', '.join(modes)))
   @mode.deleter
   def mode(self):
     self._mode = self.__class__.default_mode
 
   @property
-  def modes(self) -> bool:
+  def modes(self) -> typing.Tuple[int]:
+    "Allowed modes of the data."
     return self._modes
 
   def _check_bitsize(self) -> typing.Tuple[int, int, int]:
