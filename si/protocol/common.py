@@ -261,11 +261,11 @@ class ProtoChar(Enum):
 
 
 @enum_defined(Cmd)
-class CmdByte(objbytes.Bytes):
+class CmdByte(objbytes.base.BytesBase):
   "Command code byte"
   # References: see Cmd references
 
-  _OCTETS = 0o10
+  _bitsize = 0o10
 
   def __init__(self):
     self._protocol = Protocol(self >= b'\x80'
@@ -278,11 +278,11 @@ class CmdByte(objbytes.Bytes):
 
 
 @enum_defined(ProtoChar)
-class ProtoCharByte(objbytes.Bytes):
+class ProtoCharByte(objbytes.base.BytesBase):
   "Protocol character byte"
   # References: see ProtoChar references
 
-  _OCTETS = 0o10
+  _bitsize = 0o10
 
 
 del Enum

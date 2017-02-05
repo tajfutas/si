@@ -4,7 +4,7 @@ import si.common as _common
 from si.utils import objbytes
 
 
-class DayOfWeekBits(objbytes.Bits):
+class DayOfWeekBits(objbytes.base.BitsBase):
   """
   Day of week stored in three bits.
 
@@ -24,7 +24,7 @@ class DayOfWeekBits(objbytes.Bits):
   _bitsize = 0o3
 
   @classmethod
-  @objbytes.default
+  @objbytes.factorymethod.default
   def default(cls, *,
       check_bitsize:bool=False, **kwgs
     ) -> 'cls':
@@ -32,7 +32,7 @@ class DayOfWeekBits(objbytes.Bits):
         factory_meth=False)
 
   @classmethod
-  @objbytes.default_if_arg_is_none
+  @objbytes.factorymethod.default_if_arg_is_none
   def from_obj(cls,
       obj: typing.Union[None, _common.DayOfWeek, str, int],
       **kwgs
@@ -72,7 +72,7 @@ class DayOfWeekBits(objbytes.Bits):
     return _common.DayOfWeek(int.from_bytes(self, 'big'))
 
 
-class FourWeekCounterRelativeBits(objbytes.Bits):
+class FourWeekCounterRelativeBits(objbytes.base.BitsBase):
   # TODO: more explanation
   """
   Four week counter relative stored in two bits.
@@ -83,7 +83,7 @@ class FourWeekCounterRelativeBits(objbytes.Bits):
   _bitsize = 0o2
 
   @classmethod
-  @objbytes.default
+  @objbytes.factorymethod.default
   def default(cls, *,
       check_bitsize:bool=False, **kwgs
     ) -> 'cls':
@@ -91,7 +91,7 @@ class FourWeekCounterRelativeBits(objbytes.Bits):
         factory_meth=False)
 
   @classmethod
-  @objbytes.default_if_arg_is_none
+  @objbytes.factorymethod.default_if_arg_is_none
   def from_obj(cls,
       obj: typing.Union[None, int],
       **kwgs
@@ -108,7 +108,7 @@ class FourWeekCounterRelativeBits(objbytes.Bits):
     return int.from_bytes(self, 'big')
 
 
-class HalfDayBit(objbytes.Bits):
+class HalfDayBit(objbytes.base.BitsBase):
   """Half day value in one bit
 
   0b0  AM
@@ -120,14 +120,14 @@ class HalfDayBit(objbytes.Bits):
   _bitsize = 0o1
 
   @classmethod
-  @objbytes.default
+  @objbytes.factorymethod.default
   def default(cls, *,
       check_bitsize:bool=False, **kwgs
     ) -> 'cls':
     return cls((0b0,), check_bitsize=False, factory_meth=False)
 
   @classmethod
-  @objbytes.default_if_arg_is_none
+  @objbytes.factorymethod.default_if_arg_is_none
   def from_obj(cls,
       obj: typing.Union[None, _common.DayOfWeek, str, int],
       **kwgs
@@ -153,14 +153,11 @@ class HalfDayBit(objbytes.Bits):
     return _common.HalfDay(int.from_bytes(self, 'big'))
 
 
-class TDByte(objbytes.DictBytes):
-  _bitsize = 0o10
-  _schema = objbytes.DictBytes._schemafactory_meth_tuple((
-      ("pad", objbytes.PadBits(2)),
-      ("fourweekcrel", FourWeekCounterRelativeBits),
-      ("dayofweek", DayOfWeekBits),
-      ("halfday", HalfDayBit),
-    ))
+class TDByte(objbytes.types.collections.NamedTupleBytes):
+  pad = objbytes.types.pad.PadBits(2)
+  fourweekcrel = FourWeekCounterRelativeBits
+  dayofweek = DayOfWeekBits
+  halfday = HalfDayBit
 
 
 del typing

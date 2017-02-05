@@ -3,10 +3,10 @@ import struct as _struct
 from si.utils import objbytes
 
 
-class CrcBytes(objbytes.Bytes):
+class CrcBytes(objbytes.base.BytesBase):
   "16bit CRC checksum bytes"
 
-  _OCTETS = 0o20
+  _bitsize = 0o20
 
   CRC_POLY = 0x8005
   CRC_BITF = 0x8000

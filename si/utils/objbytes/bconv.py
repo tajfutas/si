@@ -1,3 +1,5 @@
+# TODO: docstring
+
 import typing
 
 from si.boltons.iterutils import chunked_iter as _chunked

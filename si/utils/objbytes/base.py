@@ -1,59 +1,14 @@
-"""
-This module provides base and utility classes which are all
-subclasses of builtin bytes and which are do an automatic
-serialization and deserialization of the object they represent.
+#TODO: docstring
 
-The module provides base classes which should be subclassed and
-customized for each object. See docstring of BaseBytes and the
-particular base class for more information.
-
-Base classes:
-  * Bytes
-  * Bits
-  * DictBytes
-
-The module provides some utility classes for the most common
-cases. These classes does not have to get subclassed, but a
-simple sublass with a pass could be reasonable to assigning a
-name to the underlying object.
-
-Utility classes:
-  * PadBit
-  * PadBits
-
-For more information about instantiation, see help page of
-BaseBytes class.
-"""
-
-import collections as _collections
-import io as _io
-from types import MappingProxyType as _MappingProxyType
 import typing
 
 from . import bconv as _bconv
-from .methdeco import eliminate_first_arg_if_none, \
-    none_if_first_arg_is_none
+from . import factorymethod
 
 
-
-################################################################
-# FACTORY METHOD DECORATORS                                    #
-################################################################
-
-
-default = eliminate_first_arg_if_none
-default_if_arg_is_none = none_if_first_arg_is_none
-
-
-
-################################################################
-# SUPERCLASS                                                   #
-################################################################
-
-
-class BaseBytes(bytes):
+class Base(bytes):
   """
-  Superclass of all objbytes classes. Subclass of bytes.
+  Baseclass of all objbytes classes. Subclass of bytes.
   Every objbytes class should be inherited by this class.
 
   Subclasses must define the following
@@ -176,7 +131,6 @@ class BaseBytes(bytes):
     argument, especially to speed up instantiation of tested
     code.
     """
-    # TODO: @factory_method
     inst = None
     if 1 < len(args):
       efs = ('{}() takes at most 1 positional argument but {} '
@@ -193,6 +147,7 @@ class BaseBytes(bytes):
               check_bitsize=check_bitsize, **kwgs)
         except (ValueError, TypeError) as e:
           factory_meth_exc = e
+          raise
         else:
           if inst is not None:
             factory_meth_exc = None
@@ -230,7 +185,7 @@ class BaseBytes(bytes):
 
   # abstract classmethod
   @classmethod
-  @default
+  @factorymethod.default
   def default(cls,
       check_bitsize: bool = False,  # should be overridden
     ) -> 'cls':
@@ -295,10 +250,19 @@ class BaseBytes(bytes):
 
   # abstract classmethod
   @classmethod
-  @default_if_arg_is_none
+  @factorymethod.default_if_arg_is_none
   def from_obj(cls, obj: typing.Any, **kwgs) -> 'cls':
     "Create an instance from the given object."
     raise NotImplementedError('must be defined by subclasses')
+
+  @classmethod
+  def new_subtype(cls,
+      name: str,
+      untampered: bool = True,
+      **nskw) -> type:
+    # TODO: docstring
+    nskw['_untampered'] = bool(untampered)
+    return cls.__class__(name, (cls,), nskw)
 
   @property
   def bitsize(self) -> int:
@@ -342,13 +306,7 @@ class BaseBytes(bytes):
     raise NotImplementedError('must be defined by subclasses')
 
 
-
-################################################################
-# BASE CLASSES                                                 #
-################################################################
-
-
-class Bytes(BaseBytes):
+class BytesBase(Base):
   """
   Base class of all objbytes objects which are represented by
   bytes and not bits.
@@ -356,6 +314,7 @@ class Bytes(BaseBytes):
   Its bitsize must be divisible by 8 without remainder and that
   is checked during instatntiation.
   """
+  # TODO: docstring
   BITWISE, BYTEWISE = False, True
 
   def __new__(cls, *args,
@@ -389,12 +348,17 @@ class Bytes(BaseBytes):
     return num_bytes, exp_num_bytes, exp_num_bits
 
 
-class Bits(BaseBytes):
+class BitsBase(Base):
   """
   Base class of all objbytes objects which are represented by
   bits and not bytes.
   """
+  # TODO: docstring
   BITWISE, BYTEWISE = True, False
+
+  def __new__(cls, *args, **kwgs) -> 'cls':
+    # TODO: docstring
+    return super().__new__(cls, *args, **kwgs)
 
   def __str__(self):
     return _bconv.bits2str(_bconv.ints2bits(self))
@@ -446,254 +410,4 @@ class Bits(BaseBytes):
     return num_bytes, exp_num_bytes, exp_num_bits
 
 
-class DictBytes(Bytes):
-  # TODO: docstring
-  _SERA_FMETH_ORDER = ('from_items', 'default')
-  _bitsize = None
-  _schema = _MappingProxyType({})
-
-  @staticmethod
-  def _bytesfactory_meth_items(items):
-    if hasattr(items, 'values'):
-      gen = items.values()
-    else:
-      gen = iter(items)
-    bytes_, last_byte_val = b'', 0b0
-    bitsize, last_byte_bits = 0o0, 0o0
-    for item in gen:
-      item_num_bytes, item_num_bits = divmod(item.bitsize, 8)
-      if item_num_bytes:
-        if last_byte_val:
-          efs = 'received bytes in bitwise mode: {!r}'
-          raise ValueError(efs.format(item))
-        else:
-          bytes_ += item[:item_num_bytes]
-          bitsize += 8 * item_num_bytes
-      if item_num_bits:
-        Lb, Ib = last_byte_bits, item_num_bits
-        S = shift = Lb + Ib - 8
-        B = item[-1] & 2**Ib-2**max(0, S)
-        if 0 <= S:
-          B >>= S
-          bytes_ += bytes((last_byte_val + B,))
-          bitsize += 0o10
-          last_byte_val = item[-1] & 2**S-1
-          last_byte_val <<= 8-S
-          last_byte_bits = S
-        else:
-          B <<= -S
-          last_byte_val += B
-          last_byte_bits += Ib
-          bitsize += Ib
-    else:
-      if last_byte_val:
-        raise ValueError('finished in bitwise mode')
-    return bytes_
-
-  @staticmethod
-  def _schemafactory_meth_tuple(
-      t: typing.Tuple[typing.Tuple[str, type]]
-    ) -> _MappingProxyType:
-    return _MappingProxyType(_collections.OrderedDict(t))
-
-  def __new__(cls, *args,
-      check_bitsize: bool = True,
-      factory_meth: typing.Union[None, bool, str] = None,
-      _items: typing.Union[None, _MappingProxyType] = None,
-      **kwgs
-    ) -> 'cls':
-    inst = super().__new__(cls, *args,
-        check_bitsize = False,
-        factory_meth = factory_meth,
-        **kwgs)
-    if _items:
-      inst._items = _items
-    elif not hasattr(inst, '_items'):
-      inst._items = inst._get_items()
-    elif check_bitsize:
-      inst._check_bitsize()
-    return inst
-
-  @classmethod
-  def clskeys(cls) -> typing.Tuple[str]:
-    """
-    Return the keys of the representing object
-    """
-    return cls._schema.keys()
-
-  @classmethod
-  @default
-  def default(cls, *,
-      check_bitsize:bool=False, **kwgs
-    ) -> 'cls':
-    """
-    Create a default instance
-    """
-    return cls.from_items({item_name: item_cls.default()
-        for (item_name, item_cls) in cls._schema.items()})
-
-  @classmethod
-  @default_if_arg_is_none
-  def from_items(cls,
-      _dict: typing.Union[None, dict] = None,
-      *,
-      check_bitsize: bool = True,
-      from_obj: bool = False,
-      **itms
-    ) -> 'cls':
-    "Create an instance from items" # TODO more docstring
-    if _dict is None:
-      unknw_k = set(itms.keys()) - set(cls._schema.keys())
-      if unknw_k:
-        efs = 'invalid key{}: {}'
-        raise KeyError(efs.format(
-            ('s' if len(unknw_k) > 1 else ''),
-            ', '.join('{!r}'.format(k)
-                for k in sorted(unknw_k))))
-      _dict = itms
-    else:
-      if itms:
-        raise TypeError('eiher a dictionary or items')
-    _items = _collections.OrderedDict()
-    for item_name, item_cls in cls._schema.items():
-      item_obj = _dict.get(item_name)
-      if from_obj:
-        item_inst = item_cls.from_obj(item_obj)
-      elif item_obj is None:
-        try:
-          item_inst = item_cls.default()
-        except AttributeError:
-          efs = 'item must be defined explicitely: {}'
-          raise TypeError(efs.format(item_name)) from None
-      else:
-        item_inst = item_cls(item_obj)
-      _items[item_name] = item_inst
-    arg = cls._bytesfactory_meth_items(_items)
-    _items = _MappingProxyType(_items)
-    return cls(arg, check_bitsize=check_bitsize,
-      factory_meth=False, _items=_items)
-
-  @classmethod
-  @default_if_arg_is_none
-  def from_obj(cls,
-      _dict: typing.Union[None, dict] = None,
-      **itms
-    ) -> 'cls':
-    "Create an instance from a dictionary" # TODO more docstring
-    return cls.from_items(_dict, from_obj=True, **itms)
-
-  def __getitem__(self, item):
-    if isinstance(item, str):
-      return self.items[item]
-    else:
-      return super().__getitem__(item)
-
-  @property
-  def items(self):
-    return self._items
-
-  def _check_bitsize(self) -> typing.Tuple[int, int, int]:
-    "See BaseBytes._check_bitsize()"
-    t_ = super()._check_bitsize()
-    if self.__class__._bitsize is not None:
-      return t_
-    else:
-      num_bytes, exp_num_bytes, exp_num_bits = t_
-      bitsize = 8 * exp_num_bytes + exp_num_bits
-      exp_bitsize = self._get_bitsize()
-      if bitsize != exp_bitsize:
-        efs = '{}: invalid bitsize (expected {}): {}'
-        raise ValueError(efs.format(self.__class__.__name__,
-            exp_bitsize, bitsize))
-      return num_bytes, exp_num_bytes, exp_num_bits
-
-  def _get_items(self):
-    _items = _collections.OrderedDict()
-    bitwise = False
-    o = 0
-    for item_name, item_cls in self._schema.items():
-      item_bitwise = item_cls.BITWISE
-      if bitwise and not item_bitwise:
-        aes = ('switching to bytewise: bitsize index must have '
-            'no remainder after divided by 8')
-        assert not o % 8, aes
-      bitwise = item_bitwise
-      o_num_bytes, o_num_bits = divmod(o, 8)
-      gen = self[o_num_bytes:]
-      if bitwise:
-        clsmeth_name = 'from_bits'
-        gen = _bconv.ints2bits(gen)
-        # throw away
-        for _ in range(o_num_bits):
-          next(gen)
-      else:
-        clsmeth_name = 'from_ints'
-      try:
-        item_inst = getattr(item_cls, clsmeth_name)(gen)
-      except StopIteration:
-        efs = '{}: not enough {}'
-        raise ValueError(efs.format(self.__class__.__name__,
-            'bits' if bitwise else 'bytes'))
-      _items[item_name] = item_inst
-      o += item_inst.bitsize
-    return _MappingProxyType(_items)
-
-  def _get_bitsize(self):
-    return sum((i.bitsize for i in self.items.values()))
-
-  def obj(self):
-    return _collections.OrderedDict((name, (item.obj()
-        if hasattr(item, 'obj') else item))
-        for name, item in self.items.items())
-
-
-
-################################################################
-# UTILITY CLASSES                                              #
-################################################################
-
-
-class PadBit(Bits):
-  # TODO: docstring
-
-  _bitsize = 0o1
-
-  def __new__(cls, *args, **kwgs) -> 'cls':
-    if not args:
-      num_bytes, num_bits = divmod(cls._bitsize, 8)
-      num_bytes += bool(num_bits)
-      args = bytes(num_bytes),
-      kwgs['factory_meth'] = False
-    return super().__new__(cls, *args, **kwgs)
-
-  @classmethod
-  def from_obj(cls,
-      obj: None = None,
-    ) -> 'cls':
-    """
-    Return the instance
-
-    The obj parameter must be None if given, otherwise
-    ValueError gets raised.
-    """
-    if obj is not None:
-      raise ValueError('obj must be None')
-    return cls()
-
-  @classmethod
-  def default(cls) -> 'cls':
-    return cls()
-
-  def obj(self) -> None:
-    return None
-
-
-def PadBits(bitsize):
-  # TODO: docstring
-  return type('PadBits', (PadBit,), dict(_bitsize=bitsize))
-
-
 del typing
-
-del eliminate_first_arg_if_none
-del none_if_first_arg_is_none
