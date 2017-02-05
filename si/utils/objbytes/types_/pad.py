@@ -3,7 +3,7 @@
 from .. import base
 
 
-class PadBit(base.BitsBase):
+class PadBit(base.Bits):
   # TODO: docstring
 
   _bitsize = 0o1

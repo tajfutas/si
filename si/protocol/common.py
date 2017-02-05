@@ -261,7 +261,7 @@ class ProtoChar(Enum):
 
 
 @enum_defined(Cmd)
-class CmdByte(objbytes.base.BytesBase):
+class CmdByte(objbytes.base.Bytes):
   "Command code byte"
   # References: see Cmd references
 
@@ -278,7 +278,7 @@ class CmdByte(objbytes.base.BytesBase):
 
 
 @enum_defined(ProtoChar)
-class ProtoCharByte(objbytes.base.BytesBase):
+class ProtoCharByte(objbytes.base.Bytes):
   "Protocol character byte"
   # References: see ProtoChar references
 

@@ -4,7 +4,7 @@ import si.common as _common
 from si.utils import objbytes
 
 
-class DayOfWeekBits(objbytes.base.BitsBase):
+class DayOfWeekBits(objbytes.base.Bits):
   """
   Day of week stored in three bits.
 
@@ -72,7 +72,7 @@ class DayOfWeekBits(objbytes.base.BitsBase):
     return _common.DayOfWeek(int.from_bytes(self, 'big'))
 
 
-class FourWeekCounterRelativeBits(objbytes.base.BitsBase):
+class FourWeekCounterRelativeBits(objbytes.base.Bits):
   # TODO: more explanation
   """
   Four week counter relative stored in two bits.
@@ -108,7 +108,7 @@ class FourWeekCounterRelativeBits(objbytes.base.BitsBase):
     return int.from_bytes(self, 'big')
 
 
-class HalfDayBit(objbytes.base.BitsBase):
+class HalfDayBit(objbytes.base.Bits):
   """Half day value in one bit
 
   0b0  AM

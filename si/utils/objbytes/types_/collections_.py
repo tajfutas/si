@@ -35,7 +35,7 @@ class NamedTupleBytesMeta(type):
     return cls._tpl
 
 
-class NamedTupleBytes(base.BytesBase,
+class NamedTupleBytes(base.Bytes,
     metaclass=NamedTupleBytesMeta):
   # TODO: docstring
   _root = True

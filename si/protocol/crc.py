@@ -3,7 +3,7 @@ import struct as _struct
 from si.utils import objbytes
 
 
-class CrcBytes(objbytes.base.BytesBase):
+class CrcBytes(objbytes.base.Bytes):
   "16bit CRC checksum bytes"
 
   _bitsize = 0o20

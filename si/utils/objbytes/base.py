@@ -6,7 +6,7 @@ from . import bconv as _bconv
 from . import factorymethod
 
 
-class Base(bytes):
+class ObjBytes(bytes):
   """
   Baseclass of all objbytes classes. Subclass of bytes.
   Every objbytes class should be inherited by this class.
@@ -306,7 +306,7 @@ class Base(bytes):
     raise NotImplementedError('must be defined by subclasses')
 
 
-class BytesBase(Base):
+class Bytes(ObjBytes):
   """
   Base class of all objbytes objects which are represented by
   bytes and not bits.
@@ -348,7 +348,7 @@ class BytesBase(Base):
     return num_bytes, exp_num_bytes, exp_num_bits
 
 
-class BitsBase(Base):
+class Bits(ObjBytes):
   """
   Base class of all objbytes objects which are represented by
   bits and not bytes.

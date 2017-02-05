@@ -163,14 +163,14 @@ class SysAddr(Enum):
 
 
 @enum_defined(MsMode)
-class MsModeByte(objbytes.base.BytesBase):
+class MsModeByte(objbytes.base.Bytes):
   "MS-Mode byte"
   # References: see MsMode references
   _bitsize = 0o10
 
 
 @enum_defined(SysAddr)
-class SysAddrByte(objbytes.base.BytesBase):
+class SysAddrByte(objbytes.base.Bytes):
   "System address byte"
   # References: see SysAddr references
   _bitsize = 0o10
