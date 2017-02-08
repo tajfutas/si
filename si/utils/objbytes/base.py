@@ -14,6 +14,12 @@ from . import factorymethod
 
 
 class ObjBytesMeta(type):
+  """
+  Metaclass of ObjBytes. Every objbytes metaclass should be
+  inherited from ObjBytesMeta
+
+  Currently it only adds classproperty default_mode.
+  """
 
   @property  # classproperty
   def default_mode(cls):
@@ -28,8 +34,7 @@ class ObjBytesMeta(type):
 class ObjBytes(bytes, metaclass=ObjBytesMeta):
   """
   Baseclass of all objbytes objects and is also a subclass of
-  bytes. Every objbytes class should be inherited by ObjBytes
-  some way.
+  bytes. Every objbytes class should be inherited from ObjBytes.
 
   Subclasses must define the following
   * class constant:
@@ -67,7 +72,7 @@ class ObjBytes(bytes, metaclass=ObjBytesMeta):
   Fro more info about this see help of __new__.
 
   they should represent or a bytes-like object (which
-  is checked for having a decode method) containing the data.
+  is checked for having a hex method) containing the data.
   In addition, there are other special ways of instantiating and
   each of them is represented by a from_something() classmethod.
 
@@ -83,7 +88,7 @@ class ObjBytes(bytes, metaclass=ObjBytesMeta):
 
   * _modes = 8, 1
 
-    Frozenset of allowed modes of the data. Here 8 means that
+    Tuple of allowed modes of the data. Here 8 means that
     bytewise mode is allowed and 1 means the bitwise mode is
     also allowed. The first value is considered the default.
 
@@ -125,7 +130,7 @@ class ObjBytes(bytes, metaclass=ObjBytesMeta):
 
     Serialization attempt is done if factory_meth keyword
     argument is None (default) and argument is not a bytes-like
-    object (checked for having a 'decode' method), or if
+    object (checked for having a 'hex' method), or if
     factory_meth is True.
 
     During serialization attempt, _sera_fmeth_order tuple is
@@ -168,7 +173,7 @@ class ObjBytes(bytes, metaclass=ObjBytesMeta):
           f'positional argument but {len(args)} were given'))
     arg = args[0] if args else None
     factory_meth_exc = None
-    if factory_meth is None and hasattr(arg, 'decode'):
+    if factory_meth is None and hasattr(arg, 'hex'):
       pass  # is bytes-like, delegated to super().__new__()
     elif factory_meth is None or factory_meth is True:
       for method_name in cls._sera_fmeth_order:
@@ -257,8 +262,8 @@ class ObjBytes(bytes, metaclass=ObjBytesMeta):
     Create an instance from the given iterable of integers of
     range 0--255. Each integer represent a byte in this aspect.
 
-    Note that bytes and bytearray objects are also iterables of
-    such integers.
+    Note that bytes, bytearray and memoryview objects are also
+    iterables of such integers.
 
     Consumes only the required number of integers from the given
     iterable which determines the data. Note that this may be
