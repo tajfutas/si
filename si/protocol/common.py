@@ -1,17 +1,17 @@
-from enum import Enum
+import enum as _enum
+
+from . import construct as _construct
+
+from si.utils import singleton as _s
 
 
-from si.utils import objbytes
-from si.utils.clsdeco import enum_defined
-
-
-class Protocol(Enum):
+class Protocol(_enum.Enum):
   NotSet = -1
   Legacy = 0
   Extended = 1
 
 
-class Cmd(Enum):
+class Cmd(_enum.Enum):
   "Command codes"
   # References:
   # PCPROG5
@@ -212,11 +212,22 @@ class Cmd(Enum):
   01  38400 baud
   """
 
+class CmdConstruct(_construct.enum.Enum):
 
-class ProtoChar(Enum):
+  def protocol(self):
+    if self.bytes is _s.NotSet:
+      return Protocol.NotSet
+    return Protocol(self.bytes >= b'\x80'
+        and self.bytes != b'\xc4')
+
+cmd_construct = CmdConstruct.factory(Cmd, 8)
+
+
+
+class ProtoChar(_enum.Enum):
   "Protocol Characters"
   # References:
-  # Communication.cs 9e291aa (#L149-157)
+  # Communication.cs 0917311 (#L225-L233)
   # PCPROG5 (pp. 5-6)
   # sireader.py 9535938 (#L50-L56)
 
@@ -259,35 +270,7 @@ class ProtoChar(Enum):
   PCPROG5 (p. 6)
   """
 
+protochar_construct = _construct.enum.Enum.factory(ProtoChar, 8)
 
-@enum_defined(Cmd)
-class CmdByte(objbytes.base.ObjBytes):
-  "Command code byte"
-  # References: see Cmd references
-
-  _bitsize = 0o10
-  _modes = frozenset((8,))
-
-  def __init__(self):
-    self._protocol = Protocol(self >= b'\x80'
-        and self != b'\xc4')
-
-  @property
-  def protocol(self) -> Protocol:
-    "Corresponding si.protocol.Protocol enumeration"
-    return self._protocol
-
-
-@enum_defined(ProtoChar)
-class ProtoCharByte(objbytes.base.ObjBytes):
-  "Protocol character byte"
-  # References: see ProtoChar references
-
-  _bitsize = 0o10
-  _modes = frozenset((8,))
-
-
-del Enum
-
-del objbytes
-del enum_defined
+del _construct
+del _enum

@@ -1,7 +1,9 @@
-from enum import Enum
+import enum as _enum
+
+from . import construct as _construct
 
 
-class ActiveCardCmd(Enum):
+class ActiveCardCmd(_enum.Enum):
   # TODO: more info
 
   # References:
@@ -14,17 +16,22 @@ class ActiveCardCmd(Enum):
   ADDR_BAT_THRESHOLD = b'\x75'
   ADDR_MEASURE_BAT = b'\x7E'
 
+activecardcmd = _construct.enum.Enum.factory(ActiveCardCmd, 8)
 
-class Card(Enum):
+
+class Card(_enum.Enum):
   # TODO: more info
 
   # References:
-  # Communication.cs 9e291aa (#L27-L31)
+  # Communication.cs 0917311 (#L87-L91)
 
   # Communication.cs names are prefixed with "CARD_"
   CARD_COMPLETE = b'\xCC'
   CARD_AUTOSEND = b'\xCA'
   CARD_FAILED = b'\xCF'
 
+card = _construct.enum.Enum.factory(Card, 8)
 
-del Enum
+
+del _construct
+del _enum
