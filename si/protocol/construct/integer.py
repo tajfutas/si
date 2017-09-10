@@ -43,10 +43,8 @@ class Int(_base.ConstructBase):
     return _struct.pack(self.typecode(), self.obj)
 
 
-Int8sl  = Int.factory(8, True, 'little')
-Int8ul  = Int.factory(8, False, 'little')
-Int8sb  = Int.factory(8, True, 'big')
-Int8ub  = Int.factory(8, False, 'big')
+Int8u  = Int.factory(8, False)
+Int8s  = Int.factory(8, True)
 Int16sl = Int.factory(16, True, 'little')
 Int16ul = Int.factory(16, False, 'little')
 Int16sb = Int.factory(16, True, 'big')
