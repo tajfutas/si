@@ -12,6 +12,7 @@ class ConstantCodec(_base.BaseCodec):
           f'got {data!r}, expected {cls.data!r}')
 
   @classmethod
+  @_base.encodemethod
   def encode(cls):
     return cls.data
 

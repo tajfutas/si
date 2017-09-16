@@ -26,6 +26,7 @@ class RegularIntegerCodec(_base.BaseCodec):
     return _struct.unpack(cls.typecode(), data)[0]
 
   @classmethod
+  @_base.encodemethod
   def encode(cls, obj):
     return _struct.pack(cls.typecode(), obj)
 

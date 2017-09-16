@@ -12,6 +12,7 @@ class EnumCodec(_base.BaseCodec):
     return cls.enum(data)
 
   @classmethod
+  @_base.encodemethod
   def encode(cls, obj):
     if not isinstance(obj, _enum.Enum):
       obj = cls.enum.__getitem__(obj)
