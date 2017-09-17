@@ -1,0 +1,1 @@
+class CRCError(ValueError): pass

@@ -2,12 +2,12 @@ import math as _math
 import struct as _struct
 import sys as _sys
 
-from . import base as _base
+from si.protocol.codec import base as _codec
 
 from si.utils import singleton as _s
 
 
-class RegularIntegerCodec(_base.BaseCodec):
+class RegularIntegerCodec(_codec.Codec):
 
   bitsize = NotImplemented
   signed = NotImplemented
@@ -22,11 +22,12 @@ class RegularIntegerCodec(_base.BaseCodec):
     return first_char + typecode_
 
   @classmethod
+  @_codec.decodemethod
   def decode(cls, data):
     return _struct.unpack(cls.typecode(), data)[0]
 
   @classmethod
-  @_base.encodemethod
+  @_codec.encodemethod
   def encode(cls, obj):
     return _struct.pack(cls.typecode(), obj)
 
@@ -101,4 +102,4 @@ Int64ub = RegularIntegerCodec.classfactory('Int64ub',
   )
 
 
-del _base
+del _codec

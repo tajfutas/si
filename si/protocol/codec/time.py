@@ -1,15 +1,16 @@
 import datetime as _datetime
 
-from . import base as _base
+from si.protocol.codec import base as _codec
 from . import integer as _integer
 
 # References:
 # Communication.cs 0917311 (#L3007-3022)
-class DateCodec(_base.BaseCodec):
+class DateCodec(_codec.Codec):
 
   bitsize = 24
 
   @classmethod
+  @_codec.decodemethod
   def decode(cls, data):
     yy = _integer.Int8u.decode(data[0:1])
     mm = _integer.Int8u.decode(data[1:2])
@@ -22,6 +23,7 @@ class DateCodec(_base.BaseCodec):
     return _datetime.date(yyyy, mm, dd)
 
   @classmethod
+  @_codec.encodemethod
   def encode(cls, obj):
     yy = obj.year % 100
     return (_integer.Int8u.encode(yy)
@@ -29,4 +31,4 @@ class DateCodec(_base.BaseCodec):
         + _integer.Int8u.encode(obj.day))
 
 
-del _base
+del _codec

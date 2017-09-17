@@ -1,6 +1,5 @@
 
 __all__ = [
-    'base',
     'constant',
     'enum',
     'instruction',

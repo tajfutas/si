@@ -1,5 +1,6 @@
 __all__ = [
     'common',
+    'exc',
     'protocol',
     'siid',
     'srr',
@@ -8,6 +9,7 @@ __all__ = [
 
 
 from . import common
+from . import exc
 from . import protocol
 from . import siid
 from . import srr

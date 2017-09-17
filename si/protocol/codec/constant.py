@@ -1,20 +1,21 @@
-from . import base as _base
+from si.protocol.codec import base as _codec
 
 
-class ConstantCodec(_base.BaseCodec):
+class ConstantCodec(_codec.Codec):
 
   data = NotImplemented
 
   @classmethod
+  @_codec.decodemethod
   def decode(cls, data):
     if data != cls.data:
       raise ValueError('invalid constant: '
           f'got {data!r}, expected {cls.data!r}')
 
   @classmethod
-  @_base.encodemethod
+  @_codec.encodemethod
   def encode(cls):
     return cls.data
 
 
-del _base
+del _codec
