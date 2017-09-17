@@ -1,8 +1,7 @@
+from si.protocol.codec import base as _codec
 from si.protocol.codec import integer as _integer
 
-# References:
-# Communication.cs 0917311 (#L3023-3029)
-codec = _integer.Int16ub
-
+codec = _integer.Int8u.classfactory('BoardVersionCodec',
+    mask=0b00001111)
 
 del _integer

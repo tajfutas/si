@@ -1,57 +1,63 @@
 from functools import wraps as _wraps
 
-from si.utils.funcdeco import doublewrap as _doublewrap
 
-
-@_doublewrap
-def decodemethod(m, mask=None):
+def decodemethod(m):
   @_wraps(m)
   def wrapped(cls, data, *args, data_idxs=None, **kwargs):
+    mask = (cls.mask if hasattr(cls, 'mask') else None)
+    if mask is None and data_idxs is None:
+      data_ = data
     if data_idxs is None:
       data_ = bytearray(data)
     else:
       data_ = bytearray(data[i] for i in data_idxs)
     if mask is not None:
-      if len(data_idxs) == 1 and isinstance(mask, int):
-        mask_ = (mask,)
-      else:
-        assert len(mask) == len(data_)
-        mask_ = mask
+      len_ = len(data_)
+      if isinstance(mask, int):
+        mask = (mask,)
+      assert len(mask) == len_
       for i, b in enumerate(data_):
-        mask_v = mask_[i]
+        mask_v = mask[i]
         data_[i] = b & mask_v
     obj = m(cls, data_, *args, **kwargs)
     return obj
   return wrapped
 
 
-@_doublewrap
-def encodemethod(m, mask=None):
+def encodemethod(m):
   @_wraps(m)
   def wrapped(cls, *args, data=None, data_idxs=None,
         **kwargs):
     enc_data = m(cls, *args, **kwargs)
-    if data is None:
+    mask = (cls.mask if hasattr(cls, 'mask') else None)
+    if mask is None and data is None:
       return enc_data
+    if data_idxs is None:
+      data_idxs = range(len(enc_data))
+    len_ = len(data_idxs)
+    if mask is not None:
+      if isinstance(mask, int):
+        mask = (mask,)
+      assert len(mask) == len_
+    if data is None:
+      data_ = bytearray(len_)
     else:
-      if data_idxs is None:
-        data_idxs = range(len(data))
-      assert len(enc_data) == len(data_idxs)
-      if mask is not None:
-        if len(data_idxs) == 1 and isinstance(mask, int):
-          mask_ = (mask,)
+      data_ = data
+    for enc_i, dat_i in enumerate(data_idxs):
+      if mask is None:
+        data_[dat_i] = enc_data[enc_i]
+      else:
+        mask_v = mask[enc_i]
+        inv_mask_v = 255 - mask_v
+        masked_enc_data = enc_data[enc_i] & mask_v
+        if data is None:
+          data_[dat_i] = masked_enc_data
         else:
-          assert len(mask) == len(data_idxs)
-          mask_ = mask
-      for enc_i, dat_i in enumerate(data_idxs):
-        if mask is None:
-          data[dat_i] = enc_data[enc_i]
-        else:
-          mask_v = mask_[i]
-          inv_mask_v = 255 - mask_v
           masked_data = data[dat_i] & inv_mask_v
-          masked_enc_data = enc_data[enc_i] & mask_v
-          data[dat_i] = masked_data + masked_enc_data
+          data_[dat_i] = masked_data + masked_enc_data
+    if data is None:
+      return bytes(data_)
+    else:
       return data
   return wrapped
 
@@ -78,6 +84,3 @@ class Codec:
   def classfactory(cls, name, *, bases=None, **dict_):
     bases = ((cls,) if bases is None else bases)
     return type(name, bases, dict_)
-
-
-del _doublewrap
