@@ -3,6 +3,40 @@ from enum import Enum
 #from si.utils import objbytes
 #from si.utils.clsdeco import enum_defined
 
+BS11_LOOP_ANTENNA_SN = frozenset((
+    # References:
+    # SPORTident.Communication/Communication.cs
+    #   0917311 (#L10207-L10238)
+    301101,
+    301102,
+    301103,
+    301104,
+    301105,
+    301410,
+    301411,
+    301568,
+    301569,
+    301570,
+    301571,
+    301572,
+    301573,
+    301734,
+    301735,
+    301743,
+    301744,
+    301745,
+    301875,
+    301876,
+    301920,
+    302065,
+    302066,
+    302354,
+    302355,
+    302356,
+    302357,
+    302358,
+    302359,
+  ))
 
 class MsMode(Enum):
   "MS-Mode"
@@ -15,6 +49,51 @@ class MsMode(Enum):
   Slave = b'\x53'
   Direct = b'\x4D'
   Remote = b'\x53'
+
+
+class ProductFamily(Enum):
+  # References:
+  # SPORTident.Communication/ProductFamily.cs 0917311
+  NotSet = 0
+  SimSrr = 33
+  Bs8SiMaster = 136
+  Bs10UfoReaderSiGolf = 138
+  Bs10UfoReaderSportIdent = 139
+  Bsx4 = 148
+  Bsx6 = 150
+  Bsx7 = 151
+  Bsx8 = 152
+  Bs11LoopAntenna = 153
+  Bs11Large = 154
+  Bs11Small = 155
+  Bs12GsmUart = 156
+  SiGsmDn = 157
+  SiPoint = 241
+
+
+class ProductType(Enum):
+  # References:
+  # SPORTident.Communication/ProductType.cs 0917311
+  NotSet = 0
+  SimSrr = 33
+  Bs8SiMaster = 33160
+  Bs10UfoReaderSiGolf = 35210
+  Bs10UfoReaderSportIdent = 35211
+  Bsx4 = 148
+  Bsx6 = 150
+  Bsf7 = 33175
+  Bsm7 = 37271
+  Bs7S = 38295
+  Bs7P = 45463
+  Bsf8 = 33176
+  Bsm8 = 37272
+  Bs11LoopAntenna = 37273
+  Bs11Large = 40346
+  Bs11Small = 52635
+  Bs12GsmUart = 6556
+  SiGsmDn = 7069
+  SiPointGolf = 37105
+  SiPointSportident = 37617
 
 
 class SysAddr(Enum):

@@ -1,8 +1,16 @@
-from functools import wraps as _wraps
+import collections as _collections
+import functools as _functools
+import inspect as _inspect
+
+
+# encodemethods should return this type to make data dynamically
+# masked
+MaskedData = _collections.namedtuple('MaskedData',
+    ('data', 'mask'))
 
 
 def decodemethod(m):
-  @_wraps(m)
+  @_functools.wraps(m)
   def wrapped(cls, data, *args, data_idxs=None, **kwargs):
     mask = (cls.mask if hasattr(cls, 'mask') else None)
     if mask is None and data_idxs is None:
@@ -25,11 +33,18 @@ def decodemethod(m):
 
 
 def encodemethod(m):
-  @_wraps(m)
+  @_functools.wraps(m)
   def wrapped(cls, *args, data=None, data_idxs=None,
         **kwargs):
-    enc_data = m(cls, *args, **kwargs)
+    s = _inspect.signature(m)
     mask = (cls.mask if hasattr(cls, 'mask') else None)
+    if 'data' in s.parameters:
+      kwargs['data'] = data
+    if 'data_idxs' in s.parameters:
+      kwargs['data_idxs'] = data_idxs
+    enc_data = m(cls, *args, **kwargs)
+    if hasattr(enc_data, 'data') and hasattr(enc_data, 'mask'):
+      enc_data, mask = enc_data.data, enc_data.mask
     if mask is None and data is None:
       return enc_data
     if data_idxs is None:

@@ -3,7 +3,7 @@ from enum import Enum
 
 class ProductFamily(Enum):
   # References:
-  # SPORTident.Communication 9e291aa \ProductFamily.cs
+  # SPORTident.Communication/ProductFamily.cs 0917311
   NotSet = 0
   SimSrr = 33
   Bs8SiMaster = 136
@@ -13,16 +13,17 @@ class ProductFamily(Enum):
   Bsx6 = 150
   Bsx7 = 151
   Bsx8 = 152
+  Bs11LoopAntenna = 153
   Bs11Large = 154
   Bs11Small = 155
   Bs12GsmUart = 156
-  SiGsmSrr = 157
+  SiGsmDn = 157
   SiPoint = 241
 
 
 class ProductType(Enum):
   # References:
-  # SPORTident.Communication 9e291aa \ProductType.cs
+  # SPORTident.Communication/ProductType.cs 0917311
   NotSet = 0
   SimSrr = 33
   Bs8SiMaster = 33160
@@ -36,10 +37,11 @@ class ProductType(Enum):
   Bs7P = 45463
   Bsf8 = 33176
   Bsm8 = 37272
+  Bs11LoopAntenna = 37273
   Bs11Large = 40346
   Bs11Small = 52635
   Bs12GsmUart = 6556
-  SiGsmSrr = 7069
+  SiGsmDn = 7069
   SiPointGolf = 37105
   SiPointSportident = 37617
 
