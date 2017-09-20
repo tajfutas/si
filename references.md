@@ -11,29 +11,29 @@ References
 * _name_: SPORTident.Common
 * _version_: 1.53.6135.14494
 * _filename_: SPORTident.Common.dll
-* _url_: <https://github.com/tajfutas/si-configplus-decompiled/tree/9e2e1aa3415ec82fcaf59e17f93521ca76c988ca/SPORTident.Common.dll>
+* _url_: <https://github.com/tajfutas/si-configplus-decompiled/tree/9e291aa/SPORTident.Common.dll>
 
 #### Helper.cs 9e291aa
 
 * _name_: SPORTident.Common.Helper
-* _url_: <https://github.com/tajfutas/si-configplus-decompiled/blob/9e2e1aa3415ec82fcaf59e17f93521ca76c988ca/SPORTident.Common.dll/SPORTident.Common/Helper.cs>
+* _url_: <https://github.com/tajfutas/si-configplus-decompiled/blob/9e291aa/SPORTident.Common.dll/SPORTident.Common/Helper.cs>
 
 #### SPORTident 9e291aa
 
 * _name_: SPORTident.SPORTident
-* _url_: <https://github.com/tajfutas/si-configplus-decompiled/tree/9e2e1aa3415ec82fcaf59e17f93521ca76c988ca/SPORTident.Common.dll/SPORTident>
+* _url_: <https://github.com/tajfutas/si-configplus-decompiled/tree/9e291aa/SPORTident.Common.dll/SPORTident>
 
 ### SPORTident.Communication 9e291aa
 
 * _name_: SPORTident.Communication
 * _version_: 2.14.6135.14495
 * _filename_: SPORTident.Communication.dll
-* _url_: <https://github.com/tajfutas/si-configplus-decompiled/tree/9e2e1aa3415ec82fcaf59e17f93521ca76c988ca/SPORTident.Communication.dll>
+* _url_: <https://github.com/tajfutas/si-configplus-decompiled/tree/9e291aa/SPORTident.Communication.dll>
 
 #### Communication.cs 9e291aa
 
 * _name_: SPORTident.Communication.Communication
-* _url_: <https://github.com/tajfutas/si-configplus-decompiled/blob/9e2e1aa3415ec82fcaf59e17f93521ca76c988ca/SPORTident.Communication.dll/SPORTident.Communication/Communication.cs>
+* _url_: <https://github.com/tajfutas/si-configplus-decompiled/blob/9e291aa/SPORTident.Communication.dll/SPORTident.Communication/Communication.cs>
 
 
 ## PCPROG4
@@ -78,5 +78,3 @@ References
 
 [SportIdent]: //www.sportident.com
 [Config+]: //www.sportident.com/products/96-software/156-sportident-config-plus.html
-
-

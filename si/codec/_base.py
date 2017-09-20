@@ -1,16 +1,16 @@
-import collections as _collections
-import functools as _functools
-import inspect as _inspect
+import collections as _collections_
+import functools as _functools_
+import inspect as _inspect_
 
 
-# encodemethods should return this type to make data dynamically
-# masked
-MaskedData = _collections.namedtuple('MaskedData',
+# encodemethods should return this type to make data
+# dynamically masked
+MaskedData = _collections_.namedtuple('MaskedData',
     ('data', 'mask'))
 
 
-def decodemethod(m):
-  @_functools.wraps(m)
+def _decodemethod(m):
+  @_functools_.wraps(m)
   def wrapped(cls, data, *args, data_idxs=None, **kwargs):
     mask = (cls.mask if hasattr(cls, 'mask') else None)
     if mask is None and data_idxs is None:
@@ -30,20 +30,22 @@ def decodemethod(m):
     obj = m(cls, data_, *args, **kwargs)
     return obj
   return wrapped
+#keep _functools_
 
 
-def encodemethod(m):
-  @_functools.wraps(m)
+def _encodemethod(m):
+  @_functools_.wraps(m)
   def wrapped(cls, *args, data=None, data_idxs=None,
         **kwargs):
-    s = _inspect.signature(m)
+    s = _inspect_.signature(m)
     mask = (cls.mask if hasattr(cls, 'mask') else None)
     if 'data' in s.parameters:
       kwargs['data'] = data
     if 'data_idxs' in s.parameters:
       kwargs['data_idxs'] = data_idxs
     enc_data = m(cls, *args, **kwargs)
-    if hasattr(enc_data, 'data') and hasattr(enc_data, 'mask'):
+    if (hasattr(enc_data, 'data')
+        and hasattr(enc_data, 'mask')):
       enc_data, mask = enc_data.data, enc_data.mask
     if mask is None and data is None:
       return enc_data
@@ -75,9 +77,15 @@ def encodemethod(m):
     else:
       return data
   return wrapped
+#keep _inspect_
 
 
 class Codec:
+
+  bitsize = ...
+
+  decodemethod = _decodemethod
+  encodemethod = _encodemethod
 
   @classmethod
   @decodemethod
@@ -99,3 +107,6 @@ class Codec:
   def classfactory(cls, name, *, bases=None, **dict_):
     bases = ((cls,) if bases is None else bases)
     return type(name, bases, dict_)
+
+
+del _collections_

@@ -1,15 +1,15 @@
-from si.utils import enumhelper as _enumhelper
+from si.utils import enumhelper as _enumhelper_
 
-from si.protocol.codec import base as _codec
+from si.codec import Codec as _Codec_
 
 
-class EnumCodec(_codec.Codec):
+class EnumCodec(_Codec_):
 
   enum = NotImplemented
   subcodec = None
 
   @classmethod
-  @_codec.decodemethod
+  @_Codec_.decodemethod
   def decode(cls, data):
     if cls.subcodec is None:
       return cls.enum(data)
@@ -17,13 +17,14 @@ class EnumCodec(_codec.Codec):
       return cls.enum(cls.subcodec.decode(data))
 
   @classmethod
-  @_codec.encodemethod
+  @_Codec_.encodemethod
   def encode(cls, obj):
-    obj = _enumhelper.get(cls.enum, obj)
+    obj = _enumhelper_.get(cls.enum, obj)
     if cls.subcodec is None:
       return obj.value
     else:
       return cls.subcodec.encode(obj.value)
+  #keep _enumhelper_
 
 
-del _codec
+del _Codec_

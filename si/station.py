@@ -1,7 +1,7 @@
-from enum import Enum
+import enum as _enum_
 
 
-class ProductFamily(Enum):
+class ProductFamily(_enum_.Enum):
   # References:
   # SPORTident.Communication/ProductFamily.cs 0917311
   NotSet = 0
@@ -21,7 +21,7 @@ class ProductFamily(Enum):
   SiPoint = 241
 
 
-class ProductType(Enum):
+class ProductType(_enum_.Enum):
   # References:
   # SPORTident.Communication/ProductType.cs 0917311
   NotSet = 0
@@ -46,4 +46,4 @@ class ProductType(Enum):
   SiPointSportident = 37617
 
 
-del Enum
+del _enum_

@@ -7,5 +7,3 @@ def get(enum_cls, value):
     except KeyError as exc:
       pass
     return enum_cls(value)
-
-

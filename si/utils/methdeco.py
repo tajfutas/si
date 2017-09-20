@@ -1,4 +1,4 @@
-from functools import wraps as _wraps
+import functools as _functools_
 
 
 # http://stackoverflow.com/a/5192374/2334951
@@ -29,7 +29,7 @@ class classproperty:
 
 def eliminate_first_arg_if_none(m):
   # TODO: improve, docstring
-  @_wraps(m)
+  @_functools_.wraps(m)
   def wrapped(cls, *args, **kwgs):
     if args and args[0] is None:
       return m(cls, *args[1:], **kwgs)
@@ -40,7 +40,7 @@ def eliminate_first_arg_if_none(m):
 
 def none_if_first_arg_is_none(m):
   # TODO: improve, docstring
-  @_wraps(m)
+  @_functools_.wraps(m)
   def wrapped(cls, *args, **kwgs):
     if args and args[0] is None:
       return None

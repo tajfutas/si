@@ -1,19 +1,8 @@
 __all__ = [
-    'codec',
-    'construct',
-    'common',
-    'card',
-    'crc',
-    'instruction',
-    'station',
-    'time',
+    'extended',
+    'legacy',
     ]
 
-from . import codec
-from . import construct
-from . import common
-from . import card
-#from . import crc
-#from . import instruction
-#from . import station
-#from . import time
+from ._common import Mode, ProtoChar
+from . import extended
+from . import legacy

@@ -1,16 +1,17 @@
 # TODO: docstring
 
-import typing as _typing
+import typing as _typing_
 
-from si.utils.boltons.iterutils import chunked_iter as _chunked
+from si.utils.boltons.iterutils import chunked_iter as _chunked_
+
 
 BITCHARS = 'oX'
 
 
 def bits2chars(
-    b: _typing.Iterable[int],
+    b: _typing_.Iterable[int],
     *,
-    bitchars: _typing.Union[None, str] = None,
+    bitchars: _typing_.Union[None, str] = None,
   ) -> str:
   """
   Generate bitdigit charactes for the given iterable of bits
@@ -28,8 +29,8 @@ def bits2chars(
 
 
 def bits2ints(
-    b: _typing.Iterable[int],
-  ) -> _typing.Iterator[int]:
+    b: _typing_.Iterable[int],
+  ) -> _typing_.Iterator[int]:
   """
   Generate integers in range 0-255 from the given iterable that
   should yield bits (integers of range 0--1). Each 8 Bits are
@@ -47,17 +48,18 @@ def bits2ints(
     ...
   ValueError: undone bitgroup remained
   """
-  for bits in _chunked(b, 8, fill=None):
+  for bits in _chunked_(b, 8, fill=None):
     if bits[-1] is None:
       raise ValueError('undone bitgroup remained')
     yield sum(bit*2**(7-i) for i, bit in enumerate(bits))
+#keep _chunked_
 
 
 def bits2str(
-    b: _typing.Iterable[int],
-    groupsize: _typing.Union[None, int] = 8,
+    b: _typing_.Iterable[int],
+    groupsize: _typing_.Union[None, int] = 8,
     *,
-    bitchars: _typing.Union[None, str] = None,
+    bitchars: _typing_.Union[None, str] = None,
     space = ' ',
   ) -> str:
   """
@@ -94,7 +96,7 @@ def bits2str(
   if groupsize:
     def subiterator(subgen):
       for i, _bchars in enumerate(
-          _chunked(subgen, groupsize, fill=None)):
+          _chunked_(subgen, groupsize, fill=None)):
         if _bchars[-1] is None:
           raise ValueError('undone bitgroup remained')
         s = ''.join(_bchars)
@@ -104,12 +106,13 @@ def bits2str(
           yield s
     gen = subiterator(gen)
   return ''.join(gen)
+#keep _chunked_
 
 
 def ints2bits(
-    i: _typing.Iterable[int],
+    i: _typing_.Iterable[int],
     reverse: bool = False,
-  ) -> _typing.Iterator[int]:
+  ) -> _typing_.Iterator[int]:
   """
   Generate bits from the given iterable that should generate
   integers of range 0--255 (bytes, bytearray, ...).
@@ -129,7 +132,7 @@ def ints2bits(
 
 
 def ints2hexes(
-    i: _typing.Iterable[int],
+    i: _typing_.Iterable[int],
   ) -> str:
   """
   Generate hexadecimal strings from the given iterable that
@@ -145,7 +148,7 @@ def ints2hexes(
 
 
 def ints2str(
-    i: _typing.Iterable[int],
+    i: _typing_.Iterable[int],
     *,
     space: str = ' ',
   ) -> str:
@@ -163,11 +166,11 @@ def ints2str(
 
 
 def str2bits(
-    s: _typing.Iterable[str],
+    s: _typing_.Iterable[str],
     *,
-    bitchars: _typing.Union[None, str] = None,
+    bitchars: _typing_.Union[None, str] = None,
     ignored: str = ' _|',
-  ) -> _typing.Iterator[int]:
+  ) -> _typing_.Iterator[int]:
   """
   Generate bit integers from the given iterable that should
   yield character strings of bitdigits.
@@ -200,10 +203,10 @@ def str2bits(
 
 
 def str2ints(
-    s: _typing.Iterable[str],
+    s: _typing_.Iterable[str],
     *,
     ignored: str = ' _|',
-  ) -> _typing.Iterator[int]:
+  ) -> _typing_.Iterator[int]:
   """
   Generate integers from the given iterable that should yield
   character strings of hexdigit pairs.
@@ -225,13 +228,14 @@ def str2ints(
     ...
   ValueError: last character without pair: '5'
   """
-  for chunk in _chunked(
+  for chunk in _chunked_(
       (c for e in s for c in e if c not in ignored),
       2, fill=None):
     if chunk[-1] is None:
       efs = 'last character without pair: {!r}'
       raise ValueError(efs.format(chunk[0]))
     yield int(''.join(chunk), 16)
+#keep _chunked_
 
 
-del _typing
+del _typing_

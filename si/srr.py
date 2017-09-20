@@ -1,7 +1,7 @@
-from enum import Enum
+import enum as _enum_
 
 
-class SimSrrFrequencyChannels(Enum):
+class SimSrrFrequencyChannels(_enum_.Enum):
   # References:
   # SPORTident.Communication 9e291aa \SimSrrFrequencyChannels.cs
   NotSet = -1
@@ -11,4 +11,4 @@ class SimSrrFrequencyChannels(Enum):
   Green = 3
 
 
-del Enum
+del _enum_

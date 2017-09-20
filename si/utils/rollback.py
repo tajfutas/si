@@ -1,4 +1,4 @@
-import typing
+import typing as _typing_
 
 
 class Rollbackable:
@@ -10,7 +10,7 @@ class Rollbackable:
   _cache_type = list
 
   def __init__(self,
-      subiterable: typing.Iterable,
+      subiterable: _typing_.Iterable,
     ):
     self._cache = self._cache_type()
     self._cache_index = 0
@@ -78,7 +78,7 @@ class Rollbackable:
     self._cache.extend(val for val in vals)
 
   def cache_purge_ahead(self,
-      size: typing.Union[None, int] = None,
+      size: _typing_.Union[None, int] = None,
     ):
     """
     Purges cache values ahead of current position.
@@ -95,7 +95,7 @@ class Rollbackable:
           + self._cache[cached_behind + size:])
 
   def cache_purge_behind(self,
-      size: typing.Union[None, int] = None,
+      size: _typing_.Union[None, int] = None,
     ):
     """
     Purges cache values behind of current position.
@@ -111,7 +111,7 @@ class Rollbackable:
       self._cache_index -= size
 
   def rollahead(self,
-      size: typing.Union[None, int] = None,
+      size: _typing_.Union[None, int] = None,
     ):
     """
     Rollahead values which will be skipped.
@@ -129,7 +129,7 @@ class Rollbackable:
       self._cache_index += size
 
   def rollback(self,
-      size: typing.Union[None, int] = None,
+      size: _typing_.Union[None, int] = None,
     ):
     """
     Rollback values which will be yielded again if not purged.
@@ -177,7 +177,7 @@ class RollbackableBytesMixin:
 class RollbackableReadMixin:
 
   def __init__(self,
-      io: typing.io,
+      io: _typing_.io,
     ):
     self._io = io
     super().__init__(self._reader())
@@ -195,7 +195,7 @@ class RollbackableReadMixin:
         yield val
 
   def readinto(self,
-      size: typing.Union[None, int] = None,
+      size: _typing_.Union[None, int] = None,
     ):
     """
     Read into cache.
@@ -248,9 +248,9 @@ class RollbackableBytesRead(
   """
 
 def rollbackable(
-    obj: typing.Union[
-        typing.Iterable[typing.Union[bytes, str]],
-        typing.io,
+    obj: _typing_.Union[
+        _typing_.Iterable[_typing_.Union[bytes, str]],
+        _typing_.io,
       ]
   ) -> Rollbackable:
   """
@@ -268,4 +268,4 @@ def rollbackable(
     return Rollbackable(obj)
 
 
-del typing
+del _typing_

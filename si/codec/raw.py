@@ -1,24 +1,21 @@
-from si.protocol.codec import base as _codec
+from si.codec import Codec as _Codec_
 
 
-
-class RawCodec(_codec.Codec):
-
-  bitsize = ...
+class RawCodec(_Codec_):
 
   @classmethod
-  @_codec.decodemethod
+  @_Codec_.decodemethod
   def decode(cls, data):
     if cls.bitsize != ...:
       assert len(data) == cls.bitsize
     return data
 
   @classmethod
-  @_codec.encodemethod
+  @_Codec_.encodemethod
   def encode(cls, data):
     if cls.bitsize != ...:
       assert len(data) == cls.bitsize
     return data
 
 
-del _codec
+del _Codec_

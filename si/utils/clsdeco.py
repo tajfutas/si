@@ -1,26 +1,28 @@
-from enum import Enum
-from functools import wraps as _wraps
+import enum as _enum_
+import functools as _functools_
 
 
-def enum_defined(enumeration: Enum):
+def enum_defined(enum: _enum_.Enum):
   """
-  Atomatically check for enumeration membership at the end of
+  Atomatically check for enum membership at the end of
   initialization.
 
-  Adds the matching enumeration as .enum property.
+  Adds the matching enum as .enum property.
   """
   def wrapped_decorator(cls):
     original_init = cls.__init__
-    @_wraps(cls.__init__)
+    @_functools_.wraps(cls.__init__)
     def new_init(self, *args, **kwgs):
       original_init(self, *args[1:], **kwgs)
-      self._enum = enumeration(self)
+      self._enum = enum(self)
     cls.__init__ = new_init
-    cls.enum = property(lambda self: self._enum,
-        doc = "Corresponding {} enumeration".format(
-            enumeration.__name__))
+    cls.enum = property(
+      lambda self: self._enum,
+      doc = f'Corresponding {enum.__name__} enumeration',
+    )
     return cls
   return wrapped_decorator
+#keep _functools_
 
 
-del Enum
+del _enum_
