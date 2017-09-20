@@ -3,9 +3,9 @@ __all__ = [
     'exc',
     'siid',
     'srr',
-    'station',
 
     'codec',
+    'product',
     'protocol',
     ]
 
@@ -14,7 +14,11 @@ from . import common
 from . import exc
 from . import siid
 from . import srr
-from . import station
 
 from . import codec
+from . import product
 from . import protocol
+
+# the following are imported in a subsequent stage to avoid
+# import recursion
+import si.product.bs

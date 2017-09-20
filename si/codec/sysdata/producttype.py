@@ -1,6 +1,6 @@
 from si.utils import enumhelper as _enumhelper_
 
-from si import station as _station_
+from si import product as _product_
 from si.codec import Codec as _Codec_
 from si.codec import enum as _enum_
 
@@ -14,8 +14,8 @@ from . import serialnumber as _serialnumber_
 #   0917311 (#L3045-3052; #L3653-3855)
 class ProductTypeCodec(_Codec_):
 
-  _e_pfam = _station_.ProductFamily
-  _e_ptyp = _station_.ProductType
+  _e_pfam = _product_.ProductFamily
+  _e_ptyp = _product_.ProductType
 
   _pfam2ptype = {
     _e_pfam.SimSrr: _e_ptyp.SimSrr,
@@ -40,8 +40,8 @@ class ProductTypeCodec(_Codec_):
   @classmethod
   @_Codec_.decodemethod
   def decode(cls, data):
-    _e_pfam = _station_.ProductFamily
-    _e_ptyp = _station_.ProductType
+    _e_pfam = _product_.ProductFamily
+    _e_ptyp = _product_.ProductType
     cfg0, cfg1, cfg2, bn3, bn2, bn1, bn0 = data
     pfam = _productfamily_.codec.decode([cfg0])
     bustype = _bustype_.codec.decode([cfg2])
@@ -56,7 +56,7 @@ class ProductTypeCodec(_Codec_):
       else:
         return _e_ptyp.Bsf8
     if pfam is _e_pfam.Bs11Small:
-      if sn in _station_.BS11_LOOP_ANTENNA_SN:
+      if sn in _product_.BS11_LOOP_ANTENNA_SN:
         return _e_ptyp.Bs11LoopAntenna
       else:
         return _e_ptyp.Bs11Small
@@ -64,7 +64,7 @@ class ProductTypeCodec(_Codec_):
   #keep _bustype_
   #keep _productfamily_
   #keep _serialnumber_
-  #keep _station_
+  #keep _product_
 
   @classmethod
   @_Codec_.encodemethod
@@ -73,8 +73,8 @@ class ProductTypeCodec(_Codec_):
       data=None, data_idxs=None):
     pfam = None
     data_cfg1 = None
-    _e_pfam = _station_.ProductFamily
-    _e_ptyp = _station_.ProductType
+    _e_pfam = _product_.ProductFamily
+    _e_ptyp = _product_.ProductType
     ptype = _enumhelper_.get(_e_ptyp, ptype)
     bustype_mask = 0b00111000
     bustype_bsm8 = 0b00110000
@@ -120,7 +120,7 @@ class ProductTypeCodec(_Codec_):
         bustype = (255 - bustype_mask) + bustype_bsm7
         mask = [255, 255, bustype_mask, 0, 0, 0, 0]
     elif ptype is _e_ptyp.Bs11LoopAntenna:
-      if sn is not None and sn in _station_.BS11_LOOP_ANTENNA_SN:
+      if sn is not None and sn in _product_.BS11_LOOP_ANTENNA_SN:
         pfam = _e_pfam.Bs11Small
       else:
         pfam = _e_pfam.Bs11LoopAntenna
@@ -130,7 +130,7 @@ class ProductTypeCodec(_Codec_):
         mask = [255, 0, 0, 255, 255, 255, 255]
     elif ptype is _e_ptyp.Bs11Small:
       if sn:
-        assert sn not in _station_.BS11_LOOP_ANTENNA_SN
+        assert sn not in _product_.BS11_LOOP_ANTENNA_SN
       pfam = _e_pfam.Bs11Small
       mask = [255, 0, 0, 0, 0, 0, 0]
     else:
@@ -154,7 +154,7 @@ class ProductTypeCodec(_Codec_):
   #keep _Codec_
   #keep _enumhelper_
   #keep _productfamily_
-  #keep _station_
+  #keep _product_
   #keep _serialnumber_
 
 

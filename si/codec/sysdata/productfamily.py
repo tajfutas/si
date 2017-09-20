@@ -1,4 +1,4 @@
-from si import station as _station_
+from si import product as _product_
 
 from si.codec import enum as _enum_
 from si.codec import integer as _integer_
@@ -9,7 +9,7 @@ from si.codec import integer as _integer_
 #   0917311 (#L3023-3029)
 ProductFamilyCodec = _enum_.EnumCodec.classfactory(
   'ProductFamilyCodec',
-  enum=_station_.ProductFamily,
+  enum=_product_.ProductFamily,
   subcodec=_integer_.Int8u,
 )
 
@@ -17,6 +17,6 @@ ProductFamilyCodec = _enum_.EnumCodec.classfactory(
 codec = ProductFamilyCodec
 
 
-del _station_
+del _product_
 del _enum_
 del _integer_

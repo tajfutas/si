@@ -14,10 +14,10 @@ class FirmwareVersionCodec(_string_.FixedSizeStringCodec):
   @_Codec_.decodemethod
   def decode(cls, data):
     return int(_string_.FixedSizeStringCodec.decode(data))
+  #keep _string_
 
 
 codec = FirmwareVersionCodec
 
 
 del _Codec_
-del _string_
