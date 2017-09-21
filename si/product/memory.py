@@ -4,10 +4,8 @@
 
 import enum as _enum_
 
-
-from si.utils import bconv as _bconv_
-from si.utils.boltons import iterutils as _iterutils_
 from si.utils import enumhelper as _enumhelper_
+from si.utils import view as _view_
 from si.codec import sysdata as _sysdata_
 
 
@@ -186,13 +184,10 @@ class Memory:
       )
 
   def __str__(self):
-    return '\n'.join(
-        f'{_bconv_.ints2str(chunk):<48}'
-        + bytes(chunk).decode(self.str_encoding)
-        for chunk in _iterutils_.chunked_iter(self._data, 16)
+    return _view_.hexview(
+        self._data, encoding=self.str_encoding
     )
-  #keep _bconv_
-  #keep _iterutils_
+  #keep _view_
 
   def get_codec(self, key):
     raise NotImplementedError()
