@@ -1,43 +1,22 @@
 import collections as _collections_
 
 from si import exc as _exc_
-
 from si.utils import singleton as _s_
-
-import si.protocol as _protocol_
-from si.protocol.extended.crc import crc as _crc_
-
 from si.codec import Codec as _Codec_
-from . import constant as _constant_
-from . import enum as _enum_
-from . import integer as _integer_
+from si.codec import enum as _enum_
+from si.codec import integer as _integer_
+from si.codec.instruction \
+    import BaseInstruction as _BaseInstruction_
+from . import __protocol as _protocol_
+
+_crc_ = _protocol_.crc
 
 
-
-class BaseInstruction(_Codec_):
-
-  WAKEUPByte = _constant_.ConstantCodec.classfactory(
-    'WAKEUPByte',
-    data=_protocol_.ProtoChar.WAKEUP.value,
-  )
-
-  STXByte = _constant_.ConstantCodec.classfactory(
-    'STXByte',
-    data=_protocol_.ProtoChar.STX.value,
-  )
-
-  ETXByte = _constant_.ConstantCodec.classfactory(
-    'ETXByte',
-    data=_protocol_.ProtoChar.ETX.value,
-  )
-
-
-
-class ExtendedInstruction(BaseInstruction):
+class ExtendedInstruction(_BaseInstruction_):
 
   CMDByte = _enum_.EnumCodec.classfactory(
     'CMDByte',
-    enum = _protocol_.extended.Cmd,
+    enum = _protocol_.Cmd,
   )
 
   LENByte = _integer_.Int8u
@@ -163,24 +142,12 @@ class ExtendedInstruction(BaseInstruction):
       )
 
 
-class LegacyInstruction(BaseInstruction):
-
-  CMDByte = _enum_.EnumCodec.classfactory(
-    'CMDByte',
-    enum = _protocol_.legacy.Cmd,
-  )
-
-  Parts = _collections_.namedtuple(
-    'LegacyInstructionParts',
-    ('wakeup', 'stx', 'cmd', 'data', 'etx')
-  )
-
-  #TODO encode/decode methods
+codec = ExtendedInstruction
 
 
+del _BaseInstruction_
 del _collections_
 del _protocol_
 del _Codec_
-del _constant_
 del _enum_
 del _integer_

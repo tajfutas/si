@@ -2,7 +2,6 @@
 # SPORTident.Communication/Communication.cs
 #   0917311 (#L6176-L6765)
 
-
 import enum as _enum_
 
 
@@ -208,7 +207,6 @@ class Memory:
     return self._data.__setitem__(key, value)
 
 
-
 class SysDataMemory(Memory):
 
   codec_map = {
@@ -252,6 +250,7 @@ class SysDataMemory(Memory):
 
 class BackupMemory(Memory):
   pass
+  #TODO write
 
 
 del _enum_

@@ -1,7 +1,6 @@
-
 __all__ = [
-    'get_sysdata',
-  ]
+  'get_sysdata',
+]
 
 from . import get_sysdata
 

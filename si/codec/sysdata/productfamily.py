@@ -1,8 +1,6 @@
-from si import product as _product_
-
 from si.codec import enum as _enum_
 from si.codec import integer as _integer_
-
+from . import __product as _product_
 
 # References:
 # SPORTident.Communication/Communication.cs

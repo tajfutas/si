@@ -1,4 +1,5 @@
 __all__ = [
     ]
 
-from ._common import Cmd
+from si.codec.instruction.legacy.__protocol import Cmd
+Cmd.__module__ = __name__

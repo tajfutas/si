@@ -1,12 +1,10 @@
 from si.utils import enumhelper as _enumhelper_
-
-from si import product as _product_
 from si.codec import Codec as _Codec_
 from si.codec import enum as _enum_
-
 from . import bustype as _bustype_
 from . import productfamily as _productfamily_
 from . import serialnumber as _serialnumber_
+from . import __product as _product_
 
 
 # References:
