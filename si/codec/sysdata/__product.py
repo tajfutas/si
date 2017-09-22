@@ -1,7 +1,7 @@
 import enum as _enum_
 
 
-class ProductFamily(_enum_.Enum):
+class ProductFamily(_enum_.IntEnum):
   # References:
   # SPORTident.Communication/ProductFamily.cs 0917311
   NotSet = 0
@@ -21,7 +21,7 @@ class ProductFamily(_enum_.Enum):
   SiPoint = 241
 
 
-class ProductType(_enum_.Enum):
+class ProductType(_enum_.IntEnum):
   # References:
   # SPORTident.Communication/ProductType.cs 0917311
   NotSet = 0

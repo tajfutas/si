@@ -6,6 +6,7 @@ __all__ = [
     'productconfiguration',
     'productfamily',
     'productiondate',
+    'productstring',
     'producttype',
     'serialnumber',
 ]
@@ -16,6 +17,7 @@ from . import firmwareversion
 from . import productconfiguration
 from . import productfamily
 from . import productiondate
+from . import productstring
 from . import producttype
 from . import serialnumber
 

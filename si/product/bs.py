@@ -11,19 +11,19 @@ class BaseStation:
   PRODUCT_FAMILY = _product_.ProductFamily.NotSet
 
   def __init__(self):
-    m = self._memory = _memory_.Memory(
+    self._memory = _memory_.Memory(
         memoryview(bytearray(self.MEM_SIZE))
     )
     # sysdata is assumed to stay in the first part of memory
-    sysdata = self._sysdata = _memory_.SysDataMemory(
-        memoryview(m[:self.SYSDATA_SIZE])
+    self._sysdata = _memory_.SysDataMemory(
+        memoryview(self._memory[:self.SYSDATA_SIZE])
     )
     # backup memory is assumed to stay from START_ADR to the end
-    backupmemory = self._backup = _memory_.BackupMemory(
-        memoryview(m[self.START_ADR:])
+    self._backupmemory = _memory_.BackupMemory(
+        memoryview(self._memory[self.START_ADR:])
     )
 
-    sysdata['ProductFamily'] = self.PRODUCT_FAMILY
+    self._sysdata['ProductFamily'] = self.PRODUCT_FAMILY
   #keep _memory_
 
   @property

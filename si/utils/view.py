@@ -15,3 +15,5 @@ def hexview(data, *, encoding='latin1'):
       + ' |'
       for chunk in _iterutils_.chunked_iter(data, 16)
   )
+#keep _bconv_
+#keep _iterutils_

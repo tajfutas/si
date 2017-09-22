@@ -205,29 +205,33 @@ class Memory:
 class SysDataMemory(Memory):
 
   codec_map = {
-    'SerialNumber': _sysdata_.serialnumber.codec,
+    'BoardVersion': _sysdata_.boardversion.codec,
     'BusType': _sysdata_.bustype.codec,
     'FirmwareVersion': _sysdata_.firmwareversion.codec,
-    'ProductionDate': _sysdata_.productiondate.codec,
     'ProductConfiguration': (
         _sysdata_.productconfiguration.codec
     ),
-    'ProductType': _sysdata_.producttype.codec,
     'ProductFamily': _sysdata_.productfamily.codec,
-    'BoardVersion': _sysdata_.boardversion.codec,
+    'ProductionDate': _sysdata_.productiondate.codec,
+    'ProductString': _sysdata_.productstring.codec,
+    'ProductType': _sysdata_.producttype.codec,
+    'SerialNumber': _sysdata_.serialnumber.codec,
   }
 
   keyaddr_map = {
-    'SerialNumber': ('BN3', 'BN2', 'BN1', 'BN0'),
+    'BoardVersion': ('CFG0',),
     'BusType': ('CFG2',),
     'FirmwareVersion': ('SV2', 'SV1', 'SV0'),
-    'ProductionDate': ('PROD_YEAR', 'PROD_MONTH', 'PROD_DAY'),
     'ProductConfiguration': ('CFG1', 'CFG0'),
+    'ProductFamily': ('CFG0',),
+    'ProductionDate': ('PROD_YEAR', 'PROD_MONTH', 'PROD_DAY'),
+    'ProductString': (
+        'CFG0', 'CFG1', 'CFG2', 'BN3', 'BN2', 'BN1', 'BN0'
+    ),
     'ProductType': (
         'CFG0', 'CFG1', 'CFG2', 'BN3', 'BN2', 'BN1', 'BN0'
     ),
-    'ProductFamily': ('CFG0',),
-    'BoardVersion': ('CFG0',),
+    'SerialNumber': ('BN3', 'BN2', 'BN1', 'BN0'),
   }
 
   sysaddr_enum = SysAddr
