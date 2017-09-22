@@ -20,10 +20,3 @@ from . import srr
 from . import codec
 from . import protocol
 from . import product
-
-# The following modules' contents are to be found in the
-# corresponding module tree:
-del codec.instruction.__protocol
-del codec.instruction.extended.__protocol
-del codec.instruction.legacy.__protocol
-del codec.sysdata.__product

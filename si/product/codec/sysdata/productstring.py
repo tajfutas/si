@@ -1,14 +1,15 @@
 import re as _re_
 
-from si.utils import bitmask as _bitmask_
 from si.utils import enumhelper as _enumhelper_
 from si.codec import Codec as _Codec_
 from si.codec import MaskedData as _MaskedData_
 from si.codec import enum as _enum_
+from si.product import \
+  BS11_LOOP_ANTENNA_SN as _BS11_LOOP_ANTENNA_SN_, \
+  ProductFamily as _ProductFamily_
 from . import bustype as _bustype_
 from . import productfamily as _productfamily_
 from . import serialnumber as _serialnumber_
-from . import __product as _product_
 
 
 # References:
@@ -35,7 +36,7 @@ class ProductStringCodec(_Codec_):
     text2 = ''
     text3 = ''
     text4 = ''
-    if pfam is _product_.ProductFamily.SimSrr:
+    if pfam is _ProductFamily_.SimSrr:
       text = "SRR"
       text2 = ({
           111: " AP (Dongle)",
@@ -43,14 +44,11 @@ class ProductStringCodec(_Codec_):
           106: " ED_AH (ActiveCard)"
       }).get(cfg1, "")
       flag6 = False
-    elif pfam is _product_.ProductFamily.Bs8SiMaster:
+    elif pfam is _ProductFamily_.Bs8SiMaster:
       num = cfg0 & 0b00001111
       text = f"BS{('M' if flag else 'F')}{num}"
       text4 += " Master"
-    elif pfam in (
-        _product_.ProductFamily.Bsx7,
-        _product_.ProductFamily.Bsx8,
-    ):
+    elif pfam in (_ProductFamily_.Bsx7, _ProductFamily_.Bsx8):
       num = cfg0 & 0b00001111
       text2 = ("-P" if flag2 else "")
       text2 += (("S" if text2 else "-S") if flag5 else "")
@@ -69,7 +67,7 @@ class ProductStringCodec(_Codec_):
               0b00101000: " (RS232)",
           }[cfg2 & 0b00111000]
         if (
-            pfam is _product_.ProductFamily.Bsx8
+            pfam is _ProductFamily_.Bsx8
             and cfg1 == 145
             and cfg2 & 0b00111000 != 0b00110000
         ):
@@ -78,18 +76,18 @@ class ProductStringCodec(_Codec_):
       else:
         flag = False
       text = f"BS{('M' if flag else 'F')}{num}"
-    elif pfam is _product_.ProductFamily.Bs11LoopAntenna:
+    elif pfam is _ProductFamily_.Bs11LoopAntenna:
       text = "BS11 loop antenna"
-    elif pfam is _product_.ProductFamily.Bs11Large:
+    elif pfam is _ProductFamily_.Bs11Large:
       text = "BS11 large"
-    elif pfam is _product_.ProductFamily.Bs11Small:
+    elif pfam is _ProductFamily_.Bs11Small:
       text = "BS11 small"
-      if sn in _product_.BS11_LOOP_ANTENNA_SN:
+      if sn in _BS11_LOOP_ANTENNA_SN_:
         text = "BS11 loop antenna"
-    elif pfam is _product_.ProductFamily.SiGsmDn:
+    elif pfam is _ProductFamily_.SiGsmDn:
       text = "SI-GSMDN"
       flag6 = False
-    elif pfam is _product_.ProductFamily.SiPoint:
+    elif pfam is _ProductFamily_.SiPoint:
       d = {144: "SI-Point Golf", 146: "SI-Point SPORTident"}
       text = d.get(cfg1, "SI-Point")
     return (
@@ -97,9 +95,10 @@ class ProductStringCodec(_Codec_):
         f'{(" RFMOD" if flag6 else "")}'
         f'{text4}'
     )
+  #keep _BS11_LOOP_ANTENNA_SN_
   #keep _bustype_
-  #keep _product_
   #keep _productfamily_
+  #keep _ProductFamily_
   #keep _serialnumber_
 
   @classmethod
@@ -107,7 +106,7 @@ class ProductStringCodec(_Codec_):
   def encode(cls, s, *,
       cfg1=None, cfg2=None, sn=None,
       data=None, data_idxs=None):
-    pfam = _product_.ProductFamily.NotSet
+    pfam = _ProductFamily_.NotSet
     data_ = None
     flag = tuple(128>>i for i in range(8))
     mask = [0] * (cls.bitsize // 8)
@@ -169,10 +168,10 @@ class ProductStringCodec(_Codec_):
         cfg2 -= 0b00000111 << 3 * uartnum
         cfg2 += busval[bus] << 3 * uartnum
     elif _re_.match(r'^BSM8 (?:RFMOD )?Master$', s):
-      pfam = _product_.ProductFamily.Bs8SiMaster
+      pfam = _ProductFamily_.Bs8SiMaster
       product_default_cfg1 = 129
     elif s == "BSM8 UART1 (SRR)":
-      pfam = _product_.ProductFamily.Bsx8
+      pfam = _ProductFamily_.Bsx8
       product_cfg1 = 145
       if cfg2 & 0b00111000 == 0b00110000:
         raise ValueError(
@@ -180,7 +179,7 @@ class ProductStringCodec(_Codec_):
           'expected anything else than 110 for the [2:5] bits'
         )
     elif s == "SRR":
-      pfam = _product_.ProductFamily.SimSrr
+      pfam = _ProductFamily_.SimSrr
       if cfg1 in (106, 107, 111):
         curr_s = cls.decode(data_)
         raise ValueError(
@@ -188,43 +187,43 @@ class ProductStringCodec(_Codec_):
             'expected anything else than 106, 107, 111'
         )
     elif s == "SRR AP (Dongle)":
-      pfam = _product_.ProductFamily.SimSrr
+      pfam = _ProductFamily_.SimSrr
       product_cfg1 = 111
     elif s == "SRR ED_LDK (BS)":
-      pfam = _product_.ProductFamily.SimSrr
+      pfam = _ProductFamily_.SimSrr
       product_cfg1 = 107
     elif s == "SRR ED_AH (ActiveCard)":
-      pfam = _product_.ProductFamily.SimSrr
+      pfam = _ProductFamily_.SimSrr
       product_cfg1 = 106
     elif _re_.match(r'^BS11 loop antenna(?: RFMOD)?$', s):
-      if sn in _product_.BS11_LOOP_ANTENNA_SN:
-        pfam = _product_.ProductFamily.Bs11Small
+      if sn in _BS11_LOOP_ANTENNA_SN_:
+        pfam = _ProductFamily_.Bs11Small
         product_default_cfg1 = 205
       else:
-        pfam = _product_.ProductFamily.Bs11LoopAntenna
+        pfam = _ProductFamily_.Bs11LoopAntenna
         product_default_cfg1 = 145
     elif _re_.match(r'^BS11 large(?: RFMOD)?$', s):
-      pfam = _product_.ProductFamily.Bs11Large
+      pfam = _ProductFamily_.Bs11Large
       product_default_cfg1 = 157
     elif _re_.match(r'^BS11 small(?: RFMOD)?$', s):
-      pfam = _product_.ProductFamily.Bs11Small
+      pfam = _ProductFamily_.Bs11Small
       product_default_cfg1 = 205
     elif s == "SI-GSMDN":
-      pfam = _product_.ProductFamily.SiGsmDn
+      pfam = _ProductFamily_.SiGsmDn
       product_default_cfg1 = 27
     elif s == "SI-Point Golf":
-      pfam = _product_.ProductFamily.SiPoint
+      pfam = _ProductFamily_.SiPoint
       product_cfg1 = 144
       mask[:2] = [255, 255]
     elif s == "SI-Point":
-      pfam = _product_.ProductFamily.SiPoint
+      pfam = _ProductFamily_.SiPoint
       if cfg1 in (144, 146):
         raise ValueError(
             f'invalid CFG1: {cfg1}; '
             'expected anything else than 144, 146'
         )
     elif s == "SI-Point SPORTident RFMOD":
-      pfam = _product_.ProductFamily.SiPoint
+      pfam = _ProductFamily_.SiPoint
       product_cfg1 = 146
     else:
       raise NotImplementedError('unsupported product')
@@ -242,10 +241,11 @@ class ProductStringCodec(_Codec_):
         + _serialnumber_.codec.encode(sn)
     )
     return _MaskedData_(enc_data, mask)
+  #keep _BS11_LOOP_ANTENNA_SN_
   #keep _Codec_
   #keep _MaskedData_
-  #keep _product_
   #keep _productfamily_
+  #keep _ProductFamily_
   #keep _serialnumber_
   #keep _re_
 

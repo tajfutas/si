@@ -2,10 +2,13 @@ from si.utils import enumhelper as _enumhelper_
 from si.codec import Codec as _Codec_
 from si.codec import MaskedData as _MaskedData_
 from si.codec import enum as _enum_
+from si.product import \
+  BS11_LOOP_ANTENNA_SN as _BS11_LOOP_ANTENNA_SN_, \
+  ProductFamily as _ProductFamily_, \
+  ProductType as _ProductType_
 from . import bustype as _bustype_
 from . import productfamily as _productfamily_
 from . import serialnumber as _serialnumber_
-from . import __product as _product_
 
 
 # References:
@@ -16,38 +19,38 @@ class ProductTypeCodec(_Codec_):
   bitsize = 56
 
   _pfam2ptype = {
-    _product_.ProductFamily.SimSrr:
-        _product_.ProductType.SimSrr,
-    _product_.ProductFamily.Bs8SiMaster:
-        _product_.ProductType.Bs8SiMaster,
-    _product_.ProductFamily.Bs11LoopAntenna:
-        _product_.ProductType.Bs11LoopAntenna,
-    _product_.ProductFamily.Bs11Large:
-        _product_.ProductType.Bs11Large,
-    _product_.ProductFamily.SiGsmDn:
-        _product_.ProductType.SiGsmDn,
-    (_product_.ProductFamily.SiPoint, 144):
-        _product_.ProductType.SiPointGolf,
-    (_product_.ProductFamily.SiPoint, 146):
-         _product_.ProductType.SiPointSportident,
-    (_product_.ProductFamily.Bsx7, 145):
-        _product_.ProductType.Bsm7,
-    (_product_.ProductFamily.Bsx7, 129):
-        _product_.ProductType.Bsf7,
-    (_product_.ProductFamily.Bsx7, 177):
-        _product_.ProductType.Bs7P,
-    (_product_.ProductFamily.Bsx7, 149):
-        _product_.ProductType.Bs7S,
-    (_product_.ProductFamily.Bsx8, 129):
-        _product_.ProductType.Bsf8,
+    _ProductFamily_.SimSrr:
+        _ProductType_.SimSrr,
+    _ProductFamily_.Bs8SiMaster:
+        _ProductType_.Bs8SiMaster,
+    _ProductFamily_.Bs11LoopAntenna:
+        _ProductType_.Bs11LoopAntenna,
+    _ProductFamily_.Bs11Large:
+        _ProductType_.Bs11Large,
+    _ProductFamily_.SiGsmDn:
+        _ProductType_.SiGsmDn,
+    (_ProductFamily_.SiPoint, 144):
+        _ProductType_.SiPointGolf,
+    (_ProductFamily_.SiPoint, 146):
+         _ProductType_.SiPointSportident,
+    (_ProductFamily_.Bsx7, 145):
+        _ProductType_.Bsm7,
+    (_ProductFamily_.Bsx7, 129):
+        _ProductType_.Bsf7,
+    (_ProductFamily_.Bsx7, 177):
+        _ProductType_.Bs7P,
+    (_ProductFamily_.Bsx7, 149):
+        _ProductType_.Bs7S,
+    (_ProductFamily_.Bsx8, 129):
+        _ProductType_.Bsf8,
   }
   _ptype2pfam = {t:f for f, t in _pfam2ptype.items()}
-  del _ptype2pfam[_product_.ProductType.Bs11LoopAntenna]
-  del _ptype2pfam[_product_.ProductType.Bsf8]
+  del _ptype2pfam[_ProductType_.Bs11LoopAntenna]
+  del _ptype2pfam[_ProductType_.Bsf8]
   _cfg1_pfams = {k[0] for k in _pfam2ptype if type(k) is tuple}
   _special_pfams = {
-      _product_.ProductFamily.Bsx8,
-      _product_.ProductFamily.Bs11Small,
+      _ProductFamily_.Bsx8,
+      _ProductFamily_.Bs11Small,
   }
 
   @classmethod
@@ -61,20 +64,22 @@ class ProductTypeCodec(_Codec_):
       return cls._pfam2ptype[pfam]
     if (pfam, cfg1) in cls._pfam2ptype:
       return cls._pfam2ptype[(pfam, cfg1)]
-    if pfam is _product_.ProductFamily.Bsx8 and cfg1 == 145:
+    if pfam is _ProductFamily_.Bsx8 and cfg1 == 145:
       if bustype & 0b00111000 == 0b00110000:
-        return _product_.ProductType.Bsm8
+        return _ProductType_.Bsm8
       else:
-        return _product_.ProductType.Bsf8
-    if pfam is _product_.ProductFamily.Bs11Small:
-      if sn in _product_.BS11_LOOP_ANTENNA_SN:
-        return _product_.ProductType.Bs11LoopAntenna
+        return _ProductType_.Bsf8
+    if pfam is _ProductFamily_.Bs11Small:
+      if sn in _BS11_LOOP_ANTENNA_SN_:
+        return _ProductType_.Bs11LoopAntenna
       else:
-        return _product_.ProductType.Bs11Small
+        return _ProductType_.Bs11Small
     raise NotImplementedError('unsupported product')
+  #keep _BS11_LOOP_ANTENNA_SN_
   #keep _bustype_
-  #keep _product_
   #keep _productfamily_
+  #keep _ProductFamily_
+  #keep _ProductType_
   #keep _serialnumber_
 
   @classmethod
@@ -85,7 +90,7 @@ class ProductTypeCodec(_Codec_):
     pfam = None
     cfg1 = None
     data_cfg1 = None
-    ptype = _enumhelper_.get(_product_.ProductType, ptype)
+    ptype = _enumhelper_.get(_ProductType_, ptype)
     bustype = 255  # assumption
     bustype_mask = 0b00111000
     bustype_bsm8 = 0b00110000
@@ -108,14 +113,14 @@ class ProductTypeCodec(_Codec_):
       else:
         pfam = ptypematch
         mask = [255, 0, 0, 0, 0, 0, 0]
-    elif ptype is _product_.ProductType.Bsm8:
-      pfam = _product_.ProductFamily.Bsx8
+    elif ptype is _ProductType_.Bsm8:
+      pfam = _ProductFamily_.Bsx8
       cfg1 = 145
       # TODO! We assume all CFG2 bits on by default: verify
       bustype = (255 - bustype_mask) + bustype_bsm8
       mask = [255, 255, bustype_mask, 0, 0, 0, 0]
-    elif ptype is _product_.ProductType.Bsf8:
-      pfam = _product_.ProductFamily.Bsx8
+    elif ptype is _ProductType_.Bsf8:
+      pfam = _ProductFamily_.Bsx8
       if attachedsrrmodule:
         cfg1 = 145
       elif attachedsrrmodule is False:
@@ -130,22 +135,22 @@ class ProductTypeCodec(_Codec_):
         # TODO! We assume all CFG2 bits on by default: verify
         bustype = (255 - bustype_mask) + bustype_bsm7
         mask = [255, 255, bustype_mask, 0, 0, 0, 0]
-    elif ptype is _product_.ProductType.Bs11LoopAntenna:
+    elif ptype is _ProductType_.Bs11LoopAntenna:
       if (
           sn is not None
-          and sn in _product_.BS11_LOOP_ANTENNA_SN
+          and sn in _BS11_LOOP_ANTENNA_SN_
       ):
-        pfam = _product_.ProductFamily.Bs11Small
+        pfam = _ProductFamily_.Bs11Small
       else:
-        pfam = _product_.ProductFamily.Bs11LoopAntenna
+        pfam = _ProductFamily_.Bs11LoopAntenna
       if sn is None:
         mask = [255, 0, 0, 0, 0, 0, 0]
       else:
         mask = [255, 0, 0, 255, 255, 255, 255]
-    elif ptype is _product_.ProductType.Bs11Small:
+    elif ptype is _ProductType_.Bs11Small:
       if sn:
-        assert sn not in _product_.BS11_LOOP_ANTENNA_SN
-      pfam = _product_.ProductFamily.Bs11Small
+        assert sn not in _BS11_LOOP_ANTENNA_SN_
+      pfam = _ProductFamily_.Bs11Small
       mask = [255, 0, 0, 0, 0, 0, 0]
     else:
       raise NotImplementedError('unsupported product')
@@ -162,12 +167,14 @@ class ProductTypeCodec(_Codec_):
       + _serialnumber_.codec.encode(sn)
     )
     return _MaskedData_(enc_data, mask)
+  #keep _BS11_LOOP_ANTENNA_SN_
   #keep _bustype_
   #keep _Codec_
   #keep _enumhelper_
   #keep _MaskedData_
   #keep _productfamily_
-  #keep _product_
+  #keep _ProductFamily_
+  #keep _ProductType_
   #keep _serialnumber_
 
 

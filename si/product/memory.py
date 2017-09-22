@@ -6,7 +6,7 @@ import enum as _enum_
 
 from si.utils import enumhelper as _enumhelper_
 from si.utils import view as _view_
-from si.codec import sysdata as _sysdata_
+from .codec import sysdata as _sysdata_
 
 
 class SysAddr(_enum_.IntEnum):

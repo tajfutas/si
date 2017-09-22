@@ -5,18 +5,16 @@ from si.utils import singleton as _s_
 from si.codec import Codec as _Codec_
 from si.codec import enum as _enum_
 from si.codec import integer as _integer_
-from si.codec.instruction \
-    import BaseInstruction as _BaseInstruction_
-from . import __protocol as _protocol_
-
-_crc_ = _protocol_.crc
+from si.protocol import \
+    BaseRawInstruction as _BaseRawInstruction_
+from si.protocol.extended import Cmd as _Cmd_, crc as _crc_
 
 
-class ExtendedInstruction(_BaseInstruction_):
+class ExtendedRawInstruction(_BaseRawInstruction_):
 
   CMDByte = _enum_.EnumCodec.classfactory(
     'CMDByte',
-    enum = _protocol_.Cmd,
+    enum = _Cmd_,
   )
 
   LENByte = _integer_.Int8u
@@ -40,7 +38,7 @@ class ExtendedInstruction(_BaseInstruction_):
     #keep _crc_
 
   Parts = _collections_.namedtuple(
-    'ExtendedInstructionParts',
+    'ExtendedRawInstructionParts',
     ('wakeup', 'stx', 'cmd', 'len', 'data', 'crc', 'etx')
   )
 
@@ -142,12 +140,12 @@ class ExtendedInstruction(_BaseInstruction_):
       )
 
 
-codec = ExtendedInstruction
+codec = ExtendedRawInstruction
 
 
-del _BaseInstruction_
+del _BaseRawInstruction_
+del _Cmd_
 del _collections_
-del _protocol_
 del _Codec_
 del _enum_
 del _integer_

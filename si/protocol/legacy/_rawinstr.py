@@ -1,30 +1,30 @@
 import collections as _collections_
 
 from si.codec import enum as _enum_
-from si.codec.instruction \
-    import BaseInstruction as _BaseInstruction_
-from . import __protocol as _protocol_
+from si.protocol import \
+    BaseRawInstruction as _BaseRawInstruction_
+from si.protocol.legacy import Cmd as _Cmd_
 
 
-class LegacyInstruction(_BaseInstruction_):
+class LegacyRawInstruction(_BaseRawInstruction_):
 
   CMDByte = _enum_.EnumCodec.classfactory(
     'CMDByte',
-    enum = _protocol_.Cmd,
+    enum = _Cmd_,
   )
 
   Parts = _collections_.namedtuple(
-    'LegacyInstructionParts',
+    'LegacyRawInstructionParts',
     ('wakeup', 'stx', 'cmd', 'data', 'etx')
   )
 
   #TODO encode/decode methods
 
 
-codec = LegacyInstruction
+codec = LegacyRawInstruction
 
 
-del _BaseInstruction_
+del _BaseRawInstruction_
+del _Cmd_
 del _collections_
 del _enum_
-del _protocol_
