@@ -1,5 +1,6 @@
 
 __all__ = [
+    'attachedsrrmodule',
     'boardversion',
     'bustype',
     'firmwareversion',
@@ -11,11 +12,13 @@ __all__ = [
     'serialnumber',
 ]
 
+from . import attachedsrrmodule
 from . import boardversion
 from . import bustype
 from . import firmwareversion
 from . import productconfiguration
 from . import productfamily
+# from . import productinterface  #TODO
 from . import productiondate
 from . import productstring
 from . import producttype

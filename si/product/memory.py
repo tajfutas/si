@@ -205,6 +205,7 @@ class Memory:
 class SysDataMemory(Memory):
 
   codec_map = {
+    'AttachedSrrModule': _sysdata_.attachedsrrmodule.codec,
     'BoardVersion': _sysdata_.boardversion.codec,
     'BusType': _sysdata_.bustype.codec,
     'FirmwareVersion': _sysdata_.firmwareversion.codec,
@@ -219,6 +220,7 @@ class SysDataMemory(Memory):
   }
 
   keyaddr_map = {
+    'AttachedSrrModule': ('CFG0', 'CFG1', 'CFG2'),
     'BoardVersion': ('CFG0',),
     'BusType': ('CFG2',),
     'FirmwareVersion': ('SV2', 'SV1', 'SV0'),
