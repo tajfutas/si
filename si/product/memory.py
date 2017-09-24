@@ -237,7 +237,7 @@ class SysDataMemory(Memory):
     'ProductType': (
         'CFG1', 'CFG0', 'CFG2', 'BN3', 'BN2', 'BN1', 'BN0'
     ),
-    'SerialNumber': ('BN3', 'BN2', 'BN1', 'BN0'),
+    'SerialNumber': ('BN3', 'BN2', 'BN1', 'BN0', 'CFG0'),
   }
 
   sysaddr_enum = SysAddr

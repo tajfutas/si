@@ -60,7 +60,7 @@ class ProductTypeCodec(_Codec_):
     cfg1, cfg0, cfg2, bn3, bn2, bn1, bn0 = data
     pfam = _productfamily_.codec.decode([cfg0])
     bustype = _bustype_.codec.decode([cfg2])
-    sn = _serialnumber_.codec.decode([bn3, bn2, bn1, bn0])
+    sn = _serialnumber_.codec.decode([bn3, bn2, bn1, bn0, cfg0])
     if pfam in cls._pfam2ptype:
       return cls._pfam2ptype[pfam]
     if (pfam, cfg1) in cls._pfam2ptype:
@@ -100,7 +100,7 @@ class ProductTypeCodec(_Codec_):
     if data_ is not None:
       assert len(data_) == 7
       cfg1 = data_[0]
-      sn = _serialnumber_.codec.decode(data_[-4:])
+      sn = _serialnumber_.codec.decode(data_[3:] + data[1:2])
     if ptype in cls._ptype2pfam:
       ptypematch = cls._ptype2pfam[ptype]
       if type(ptypematch) is tuple:
