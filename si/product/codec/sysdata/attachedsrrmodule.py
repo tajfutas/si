@@ -9,7 +9,7 @@ from . import productfamily as _productfamily_
 
 # References:
 # SPORTident.Communication/Communication.cs
-#   0917311 (#L3045-3052; #L3653-3855)
+#   0917311 (#L3045-3073; #L3653-3855)
 class AttachedSrrModuleCodec(_Codec_):
 
   bitsize = 24

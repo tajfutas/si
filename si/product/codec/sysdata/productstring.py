@@ -15,7 +15,7 @@ from . import serialnumber as _serialnumber_
 
 # References:
 # SPORTident.Communication/Communication.cs
-#   0917311 (#L3045-3052; #L3653-3855)
+#   0917311 (#L3045-3073; #L3653-3855)
 class ProductStringCodec(_Codec_):
 
   bitsize = 56
@@ -23,7 +23,7 @@ class ProductStringCodec(_Codec_):
   @classmethod
   @_Codec_.decodemethod
   def decode(cls, data):
-    cfg0, cfg1, cfg2, bn3, bn2, bn1, bn0 = data
+    cfg1, cfg0, cfg2, bn3, bn2, bn1, bn0 = data
     pfam = _productfamily_.codec.decode([cfg0])
     bustype = _bustype_.codec.decode([cfg2])
     sn = _serialnumber_.codec.decode([bn3, bn2, bn1, bn0])
@@ -125,7 +125,7 @@ class ProductStringCodec(_Codec_):
       data_ = data
     if data_ is not None:
       assert len(data_) == 7
-      cfg0, cfg1, cfg2 = data_[:3]
+      cfg1, cfg0, cfg2 = data_[:3]
       pfam = _productfamily_.codec.decode([cfg0])
       bustype = _bustype_.codec.decode([cfg2])
       sn = _serialnumber_.codec.decode(data_[3:])

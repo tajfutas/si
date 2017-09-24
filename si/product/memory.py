@@ -206,9 +206,11 @@ class SysDataMemory(Memory):
 
   codec_map = {
     'AttachedSrrModule': _sysdata_.attachedsrrmodule.codec,
+    'BackupMemorySize': _sysdata_.backupmemorysize.codec,
     'BoardVersion': _sysdata_.boardversion.codec,
     'BusType': _sysdata_.bustype.codec,
     'FirmwareVersion': _sysdata_.firmwareversion.codec,
+    'HasBattery': _sysdata_.hasbattery.codec,
     'ProductConfiguration': (
         _sysdata_.productconfiguration.codec
     ),
@@ -221,17 +223,19 @@ class SysDataMemory(Memory):
 
   keyaddr_map = {
     'AttachedSrrModule': ('CFG0', 'CFG1', 'CFG2'),
+    'BackupMemorySize': ('BMS', 'CFG0'),
     'BoardVersion': ('CFG0',),
     'BusType': ('CFG2',),
     'FirmwareVersion': ('SV2', 'SV1', 'SV0'),
+    'HasBattery': ('CFG1', 'CFG0'),
     'ProductConfiguration': ('CFG1', 'CFG0'),
     'ProductFamily': ('CFG0',),
     'ProductionDate': ('PROD_YEAR', 'PROD_MONTH', 'PROD_DAY'),
     'ProductString': (
-        'CFG0', 'CFG1', 'CFG2', 'BN3', 'BN2', 'BN1', 'BN0'
+        'CFG1', 'CFG0', 'CFG2', 'BN3', 'BN2', 'BN1', 'BN0'
     ),
     'ProductType': (
-        'CFG0', 'CFG1', 'CFG2', 'BN3', 'BN2', 'BN1', 'BN0'
+        'CFG1', 'CFG0', 'CFG2', 'BN3', 'BN2', 'BN1', 'BN0'
     ),
     'SerialNumber': ('BN3', 'BN2', 'BN1', 'BN0'),
   }

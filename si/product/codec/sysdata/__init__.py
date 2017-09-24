@@ -1,9 +1,11 @@
 
 __all__ = [
     'attachedsrrmodule',
+    'backupmemorysize',
     'boardversion',
     'bustype',
     'firmwareversion',
+    'hasbattery',
     'productconfiguration',
     'productfamily',
     'productiondate',
@@ -13,9 +15,11 @@ __all__ = [
 ]
 
 from . import attachedsrrmodule
+from . import backupmemorysize
 from . import boardversion
 from . import bustype
 from . import firmwareversion
+from . import hasbattery
 from . import productconfiguration
 from . import productfamily
 # from . import productinterface  #TODO
