@@ -207,6 +207,8 @@ class SysDataMemory(Memory):
   codec_map = {
     'AttachedSrrModule': _sysdata_.attachedsrrmodule.codec,
     'BackupMemorySize': _sysdata_.backupmemorysize.codec,
+    'BatteryCapacity': _sysdata_.batterycapacity.codec,
+    'BatteryDate': _sysdata_.batterydate.codec,
     'BoardVersion': _sysdata_.boardversion.codec,
     'BusType': _sysdata_.bustype.codec,
     'FirmwareVersion': _sysdata_.firmwareversion.codec,
@@ -224,6 +226,13 @@ class SysDataMemory(Memory):
   keyaddr_map = {
     'AttachedSrrModule': ('CFG0', 'CFG1', 'CFG2'),
     'BackupMemorySize': ('BMS', 'CFG0'),
+    'BatteryCapacity': (
+        'BATT_CAP3', 'BATT_CAP2', 'BATT_CAP1', 'BATT_CAP0',
+        'CFG0'
+    ),
+    'BatteryDate': (
+        'BATT_YEAR', 'BATT_MONTH', 'BATT_DAY', 'CFG0'
+    ),
     'BoardVersion': ('CFG0',),
     'BusType': ('CFG2',),
     'FirmwareVersion': ('SV2', 'SV1', 'SV0'),

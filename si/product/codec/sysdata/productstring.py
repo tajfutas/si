@@ -128,7 +128,7 @@ class ProductStringCodec(_Codec_):
       cfg1, cfg0, cfg2 = data_[:3]
       pfam = _productfamily_.codec.decode([cfg0])
       bustype = _bustype_.codec.decode([cfg2])
-      sn = _serialnumber_.codec.decode(data_[3:] + data[1:2])
+      sn = _serialnumber_.codec.decode(data_[3:] + data_[1:2])
     bsxre = (r'^BS(?P<mf>[MF])(?P<num>[78])(?:-(?=[PS]))?'
       r'(?P<printout>P)?(?P<sprint>S)?(?:\s(?P<rfmod>RFMOD))?'
       r'(?:\s(?P<uart>(?:UART0 \((?:USB|RS232)\)'
@@ -233,7 +233,7 @@ class ProductStringCodec(_Codec_):
       cfg1 |= flag[6]
       mask[1] |= flag[6]
     enc_data = (
-        bytes([pfam, cfg1, bustype])
+        bytes([cfg1, pfam, bustype])
         + _serialnumber_.codec.encode(sn)
     )
     return _MaskedData_(enc_data, mask)

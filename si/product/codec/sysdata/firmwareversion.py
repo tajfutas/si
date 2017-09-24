@@ -5,6 +5,7 @@ from si.codec import string as _string_
 # References:
 # Communication.cs 0917311 (#L2995-3005)
 class FirmwareVersionCodec(_string_.FixedSizeStringCodec):
+
   bitsize=24
   encoding='iso8859-1'
   filler='0'

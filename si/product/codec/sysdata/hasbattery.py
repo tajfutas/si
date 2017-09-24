@@ -33,7 +33,7 @@ class HasBatteryCodec(_Codec_):
   @_Codec_.encodemethod
   def encode(cls, value=None):
     if value is not None:
-      raise ValueError(
+      raise TypeError(
           'unable to set directly; '
           'hint: set ProductType instead'
       )

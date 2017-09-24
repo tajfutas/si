@@ -100,7 +100,7 @@ class ProductTypeCodec(_Codec_):
     if data_ is not None:
       assert len(data_) == 7
       cfg1 = data_[0]
-      sn = _serialnumber_.codec.decode(data_[3:] + data[1:2])
+      sn = _serialnumber_.codec.decode(data_[3:] + data_[1:2])
     if ptype in cls._ptype2pfam:
       ptypematch = cls._ptype2pfam[ptype]
       if type(ptypematch) is tuple:
@@ -132,8 +132,8 @@ class ProductTypeCodec(_Codec_):
     else:
       raise NotImplementedError('unsupported product')
     enc_data = (
-      _productfamily_.codec.encode(pfam)
-      + bytes([cfg1])
+      bytes([cfg1])
+      + _productfamily_.codec.encode(pfam)
       + _bustype_.codec.encode(bustype)
       + _serialnumber_.codec.encode(sn)
     )
