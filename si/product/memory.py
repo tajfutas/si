@@ -4,7 +4,6 @@
 
 import enum as _enum_
 
-from si.utils import enumhelper as _enumhelper_
 from si.utils import view as _view_
 from .codec import sysdata as _sysdata_
 
@@ -255,11 +254,7 @@ class SysDataMemory(Memory):
     return self.codec_map[key]
 
   def get_data_idxs(self, key):
-    return tuple(
-      _enumhelper_.get(self.sysaddr_enum, addr)
-      for addr in self.keyaddr_map[key]
-    )
-  #keep _enumhelper_
+    return self.sysaddr_enum
 
 
 class BackupMemory(Memory):

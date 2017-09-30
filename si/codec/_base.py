@@ -5,17 +5,42 @@ import inspect as _inspect_
 
 # encodemethods should return this type to make data
 # dynamically masked
-MaskedData = _collections_.namedtuple('MaskedData',
-    ('data', 'mask'))
+IndexedData = _collections_.namedtuple(
+    'IndexedData',
+    ('data', 'data_idxs'),
+)
+MaskedData = _collections_.namedtuple(
+    'MaskedData',
+    ('data', 'mask'),
+)
+MaskedIndexedData = _collections_.namedtuple(
+    'MaskedIndexedData',
+    ('data', 'data_idxs', 'mask'),
+)
 
 
 def _decodemethod(m):
   @_functools_.wraps(m)
   def wrapped(cls, data, *args, data_idxs=None, **kwargs):
     mask = (cls.mask if hasattr(cls, 'mask') else None)
-    if mask is None and data_idxs is None:
-      data_ = data
-    if data_idxs is None:
+    try:
+      arg_i = _inspect_.getargspec(m).args.index('data_idxs')
+    except ValueError:
+      pass
+    else:
+      arg_i -= 2  # cls, data
+      if arg_i < len(args):
+        data_idxs = args[arg_i]
+        args = args[:arg_i] + args[arg_i + 1:]
+    if hasattr(data_idxs, '__members__'):
+      kwargs['data_idxs'] = data_idxs
+    else:
+      s = _inspect_.signature(m)
+      if 'data_idxs' in s.parameters:
+        kwargs['data_idxs'] = data_idxs
+    if mask is None:
+      data_ = bytearray(data)
+    if data_idxs is None or hasattr(data_idxs, '__members__'):
       data_ = bytearray(data)
     else:
       data_ = bytearray(data[i] for i in data_idxs)
@@ -37,21 +62,28 @@ def _encodemethod(m):
   @_functools_.wraps(m)
   def wrapped(cls, *args, data=None, data_idxs=None,
         **kwargs):
-    s = _inspect_.signature(m)
     mask = (cls.mask if hasattr(cls, 'mask') else None)
+    s = _inspect_.signature(m)
     if 'data' in s.parameters:
       kwargs['data'] = data
     if 'data_idxs' in s.parameters:
       kwargs['data_idxs'] = data_idxs
-    enc_data = m(cls, *args, **kwargs)
-    if (hasattr(enc_data, 'data')
-        and hasattr(enc_data, 'mask')):
-      enc_data, mask = enc_data.data, enc_data.mask
+    m_result = m(cls, *args, **kwargs)
+    if hasattr(m_result, 'data'):
+      enc_data = m_result.data
+    else:
+      enc_data = m_result
+    if hasattr(m_result, 'mask'):
+      mask = m_result.mask
+    if hasattr(m_result, 'data_idxs'):
+      data_idxs = m_result.data_idxs
     if mask is None and data is None:
       return enc_data
     if data_idxs is None:
-      data_idxs = range(len(enc_data))
-    len_ = len(data_idxs)
+      data_idxs_ = range(len(enc_data))
+    else:
+      data_idxs_ = data_idxs
+    len_ = len(data_idxs_)
     if mask is not None:
       if isinstance(mask, int):
         mask = (mask,)
@@ -60,7 +92,7 @@ def _encodemethod(m):
       data_ = bytearray(len_)
     else:
       data_ = data
-    for enc_i, dat_i in enumerate(data_idxs):
+    for enc_i, dat_i in enumerate(data_idxs_):
       if mask is None:
         data_[dat_i] = enc_data[enc_i]
       else:
