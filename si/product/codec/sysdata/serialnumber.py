@@ -16,11 +16,11 @@ class SerialNumberCodec(_Codec_):
 
   @classmethod
   @_Codec_.decodemethod
-  def decode(cls, data, data_idxs):
+  def decode(cls, data, idxmap):
     data_keys = ('BN3', 'BN2', 'BN1', 'BN0')
-    data_idxs_ = tuple(data_idxs[key] for key in data_keys)
-    data_ = [data[i] for i in data_idxs_]
-    pfam = _productfamily_.codec.decode(data, data_idxs)
+    idxs = tuple(idxmap[key] for key in data_keys)
+    data_ = [data[i] for i in idxs]
+    pfam = _productfamily_.codec.decode(data, idxmap)
     if pfam is _ProductFamily_.SimSrr:
       data_[0] = 0
     return cls.subcodec.decode(data_)
@@ -29,16 +29,16 @@ class SerialNumberCodec(_Codec_):
 
   @classmethod
   @_Codec_.encodemethod
-  def encode(cls, value, data, data_idxs):
+  def encode(cls, value, data, idxmap):
     data_keys = ('BN3', 'BN2', 'BN1', 'BN0')
-    data_idxs_ = tuple(data_idxs[key] for key in data_keys)
+    idxs = tuple(idxmap[key] for key in data_keys)
     mask = bytearray((255 for _ in data_keys))
-    pfam = _productfamily_.codec.decode(data, data_idxs)
+    pfam = _productfamily_.codec.decode(data, idxmap)
     if pfam is _ProductFamily_.SimSrr:
       assert value < 256**3
       mask[0] = 0
     enc_data = bytearray(cls.subcodec.encode(value))
-    return _MaskedIndexedData_(enc_data, data_idxs_, mask)
+    return _MaskedIndexedData_(enc_data, idxs, mask)
   #keep _MaskedIndexedData_
   #keep _productfamily_
   #keep _ProductFamily_

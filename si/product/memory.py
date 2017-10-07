@@ -155,6 +155,7 @@ class SysAddr(_enum_.IntEnum):
 
 class Memory:
 
+  idxmap = None
   str_encoding = 'iso8859-1'
 
   def __init__(self, data):
@@ -168,18 +169,25 @@ class Memory:
     if isinstance(key, (int, slice)):
       return self._data.__getitem__(key)
     else:
-      data_idxs = self.get_data_idxs(key)
+      idxs = self.get_idxs(key)
       codec = self.get_codec(key)
-      return codec.decode(self._data, data_idxs=data_idxs)
+      kwargs_ = {}
+      if self.idxmap is not None:
+        kwargs_['idxmap'] = self.idxmap
+      return codec.decode(self._data, idxs=idxs, **kwargs_)
 
   def __setitem__(self, key, value):
     if isinstance(key, (int, slice)):
       return self._data.__setitem__(key, value)
     else:
-      data_idxs = self.get_data_idxs(key)
+      idxs = self.get_idxs(key)
       codec = self.get_codec(key)
+      kwargs_ = {}
+      if self.idxmap is not None:
+        kwargs_['idxmap'] = self.idxmap
       return codec.encode(
-          value, data=self._data, data_idxs=data_idxs
+          value, data=self._data, idxs=idxs,
+          **kwargs_
       )
 
   def __str__(self):
@@ -194,8 +202,8 @@ class Memory:
   def get_data(self, key):
     return self._data.__getitem__(key)
 
-  def get_data_idxs(self, key):
-    raise NotImplementedError()
+  def get_idxs(self, key):
+    return None
 
   def set_data(self, key, value):
     return self._data.__setitem__(key, value)
@@ -248,13 +256,10 @@ class SysDataMemory(Memory):
     'SerialNumber': ('BN3', 'BN2', 'BN1', 'BN0', 'CFG0'),
   }
 
-  sysaddr_enum = SysAddr
+  idxmap = SysAddr
 
   def get_codec(self, key):
     return self.codec_map[key]
-
-  def get_data_idxs(self, key):
-    return self.sysaddr_enum
 
 
 class BackupMemory(Memory):

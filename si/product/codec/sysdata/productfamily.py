@@ -18,17 +18,17 @@ class ProductFamilyCodec(_Codec_):
 
   @classmethod
   @_Codec_.decodemethod
-  def decode(cls, data, data_idxs):
-    value = data[data_idxs['CFG0']]
+  def decode(cls, data, idxmap):
+    value = data[idxmap['CFG0']]
     return cls.subcodec.decode([value])
 
   @classmethod
-  @_Codec_.encodemethod
-  def encode(cls, value, data, data_idxs):
+  @_Codec_.encodemethod(pass_data=True)
+  def encode(cls, value, data, idxmap):
     mask = b'\xFF'
-    data_idxs_ = (data_idxs['CFG0'],)
+    idxs = (idxmap['CFG0'],)
     enc_data  = cls.subcodec.encode(value)
-    return _MaskedIndexedData_(enc_data, data_idxs_, mask)
+    return _MaskedIndexedData_(enc_data, idxs, mask)
   #keep _MaskedIndexedData_
 
 
